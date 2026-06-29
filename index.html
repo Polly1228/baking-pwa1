@@ -1172,6 +1172,26 @@ pageTitles.shopping = '購物清單';
 pageTitles.notes = '試作筆記';
 
 /* ════════════════════════════
+   提示音
+════════════════════════════ */
+function playBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.4, 0.8].forEach(delay => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = 880;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0.6, ctx.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.3);
+      osc.start(ctx.currentTime + delay);
+      osc.stop(ctx.currentTime + delay + 0.3);
+    });
+  } catch(e) {}
+}
+
+/* ════════════════════════════
    計時器
 ════════════════════════════ */
 let timers = [];
@@ -1229,7 +1249,7 @@ function toggleTimer(id) {
       if(t.remaining===0) {
         clearInterval(t.interval); t.running=false;
         if(b) b.textContent='開始';
-        if('vibrate' in navigator) navigator.vibrate([400,100,400,100,400]);
+        playBeep();
       }
     },1000);
   }
