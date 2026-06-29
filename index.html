@@ -344,16 +344,26 @@
   footer { text-align: center; font-size: 12px; color: var(--ink-soft); margin-top: 2.5rem; }
 
   /* 計時器 */
-  .timer-item { background: var(--cream); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1rem; }
-  .timer-item .timer-label { font-size: 14px; font-weight: 600; margin-bottom: 6px; display:flex; align-items:center; gap:8px; }
-  .timer-item .timer-label input { flex:1; background:none; border:none; border-bottom:1px solid var(--line); border-radius:0; font-size:14px; font-weight:600; padding:0 4px; height:28px; }
-  .timer-display { font-size: 42px; font-weight: 700; font-family:'Inter',sans-serif; text-align:center; letter-spacing:0.04em; margin: 8px 0; color: var(--ink); }
+  .timer-item { background: var(--cream); border: 1px solid var(--line); border-radius: 16px; padding: 1.25rem 1.25rem 1rem; margin-bottom: 1rem; }
+  .timer-item .timer-label { font-size: 14px; font-weight: 600; margin-bottom: 10px; display:flex; align-items:center; gap:8px; }
+  .timer-item .timer-label input { flex:1; background:none; border:none; border-bottom:1px solid var(--line); border-radius:0; font-size:14px; font-weight:600; padding:0 4px; height:28px; color:var(--ink); }
+  .timer-display { font-size: 46px; font-weight: 700; font-family:'Inter',sans-serif; text-align:center; letter-spacing:0.06em; margin: 6px 0 12px; color: var(--ink); transition: color 0.3s; }
   .timer-display.running { color: var(--rust); }
   .timer-display.done { color: var(--rust-deep); }
-  .timer-set { display:flex; gap:6px; align-items:center; justify-content:center; margin-bottom:10px; }
-  .timer-set input { width: 56px; text-align:center; }
-  .timer-set span { font-size:13px; color:var(--ink-soft); }
-  .timer-btns { display:flex; gap:8px; justify-content:center; }
+  .timer-btns { display:flex; gap:8px; justify-content:center; margin-top:10px; }
+
+  /* 滾輪選取器 */
+  .drum-picker { display:flex; align-items:center; justify-content:center; gap:4px; margin-bottom:10px; position:relative; }
+  .drum-picker .drum-sep { font-size:28px; font-weight:700; color:var(--ink-soft); padding:0 2px; line-height:1; }
+  .drum-col { position:relative; width:64px; height:120px; overflow:hidden; cursor:ns-resize; }
+  .drum-col::before, .drum-col::after { content:''; position:absolute; left:0; right:0; height:40px; z-index:2; pointer-events:none; }
+  .drum-col::before { top:0; background:linear-gradient(to bottom, var(--cream), transparent); }
+  .drum-col::after { bottom:0; background:linear-gradient(to top, var(--cream), transparent); }
+  .drum-selector { position:absolute; left:4px; right:4px; top:40px; height:40px; border-top:2px solid var(--rust); border-bottom:2px solid var(--rust); border-radius:6px; pointer-events:none; z-index:1; }
+  .drum-inner { display:flex; flex-direction:column; transition:transform 0.15s ease; }
+  .drum-cell { height:40px; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:600; font-family:'Inter',sans-serif; color:var(--ink-soft); flex-shrink:0; user-select:none; }
+  .drum-cell.active { color:var(--ink); font-size:26px; }
+  .drum-label { text-align:center; font-size:11px; color:var(--ink-soft); margin-top:2px; }
 
   /* 購物清單 */
   .shop-item { display:flex; align-items:center; gap:12px; padding:10px 2px; border-top:1px solid var(--line); cursor:pointer; user-select:none; font-size:14.5px; }
@@ -652,6 +662,7 @@
 <footer>純前端計算，所有資料只留在這台裝置上。</footer>
 
 <script>
+
 // Drawer
 const drawer = document.getElementById('drawer');
 const overlay = document.getElementById('drawerOverlay');
@@ -1192,15 +1203,62 @@ function playBeep() {
 }
 
 /* ════════════════════════════
-   計時器
+   計時器（滾輪版）
 ════════════════════════════ */
 let timers = [];
-function createTimer(label='', minutes=10, seconds=0) {
+
+function makeDrumCol(max, initial, padded) {
+  const col = document.createElement('div');
+  col.className = 'drum-col';
+  const sel = document.createElement('div');
+  sel.className = 'drum-selector';
+  const inner = document.createElement('div');
+  inner.className = 'drum-inner';
+  const count = max; // 0..max-1
+  // padding cells
+  inner.appendChild(Object.assign(document.createElement('div'),{className:'drum-cell',textContent:''}));
+  inner.appendChild(Object.assign(document.createElement('div'),{className:'drum-cell',textContent:''}));
+  for(let i=0;i<count;i++){
+    const cell=document.createElement('div');
+    cell.className='drum-cell'+(i===initial?' active':'');
+    cell.textContent=String(i).padStart(padded?2:'1','0');
+    inner.appendChild(cell);
+  }
+  inner.appendChild(Object.assign(document.createElement('div'),{className:'drum-cell',textContent:''}));
+  inner.appendChild(Object.assign(document.createElement('div'),{className:'drum-cell',textContent:''}));
+  col.appendChild(sel);
+  col.appendChild(inner);
+
+  let current=initial, startY=0, startOff=0, dragging=false;
+  const cellH=40;
+  function setVal(v){
+    current=((v%count)+count)%count;
+    inner.style.transition='transform 0.15s ease';
+    inner.style.transform=`translateY(${-current*cellH}px)`;
+    inner.querySelectorAll('.drum-cell').forEach((c,i)=>c.classList.toggle('active',i-2===current));
+  }
+  setVal(initial);
+  function onStart(y){ dragging=true; startY=y; startOff=current*cellH; inner.style.transition='none'; }
+  function onMove(y){ if(!dragging)return; const dy=startY-y; const raw=Math.round((startOff+dy)/cellH); setVal(raw); }
+  function onEnd(){ dragging=false; inner.style.transition='transform 0.15s ease'; }
+  col.addEventListener('mousedown',e=>{onStart(e.clientY);e.preventDefault();});
+  window.addEventListener('mousemove',e=>{if(dragging)onMove(e.clientY);});
+  window.addEventListener('mouseup',()=>onEnd());
+  col.addEventListener('touchstart',e=>{onStart(e.touches[0].clientY);},{passive:true});
+  col.addEventListener('touchmove',e=>{onMove(e.touches[0].clientY);e.preventDefault();},{passive:false});
+  col.addEventListener('touchend',()=>onEnd());
+  col.getValue=()=>current;
+  col.setValue=setVal;
+  return col;
+}
+
+function createTimer(label='', h=0, m=10, s=0) {
   const id = Date.now();
-  const total = (parseInt(minutes)||0)*60 + (parseInt(seconds)||0);
-  timers.push({ id, label: label||'計時器', total, remaining: total, running: false, interval: null });
+  const total = h*3600 + m*60 + s;
+  timers.push({ id, label: label||'計時器', total: total||600, remaining: total||600, running: false, interval: null, drumH:null, drumM:null, drumS:null });
   renderTimers();
 }
+
 function renderTimers() {
   const el = document.getElementById('timerList');
   if (!timers.length) { el.innerHTML = '<p class="note" style="text-align:center;padding:1rem 0;">點「新增計時器」開始計時</p>'; return; }
@@ -1209,28 +1267,49 @@ function renderTimers() {
     const div = document.createElement('div');
     div.className = 'timer-item';
     div.id = 'timer-' + t.id;
-    const m = String(Math.floor(t.remaining/60)).padStart(2,'0');
-    const s = String(t.remaining%60).padStart(2,'0');
-    const dispClass = t.remaining===0 ? 'done' : t.running ? 'running' : '';
+
+    const h=Math.floor(t.remaining/3600), m=Math.floor((t.remaining%3600)/60), s=t.remaining%60;
+    const hh=String(Math.floor(t.total/3600)).padStart(2,'0');
+    const mm=String(Math.floor((t.total%3600)/60)).padStart(2,'0');
+    const ss=String(t.total%60).padStart(2,'0');
+    const dispH=String(h).padStart(2,'0'), dispM=String(m).padStart(2,'0'), dispS=String(s).padStart(2,'0');
+    const dispClass = t.remaining===0?'done':t.running?'running':'';
+
     div.innerHTML = `
       <div class="timer-label">
-        <input type="text" value="${t.label}" onchange="updateTimerLabel(${t.id},this.value)" />
-        <button class="btn-remove" onclick="removeTimer(${t.id})">✕</button>
+        <input type="text" value="${t.label}" />
+        <button class="btn-remove">✕</button>
       </div>
-      <div class="timer-set">
-        <input type="number" min="0" max="99" value="${Math.floor(t.total/60)}" id="tmin-${t.id}" style="width:56px;text-align:center;" /><span>分</span>
-        <input type="number" min="0" max="59" value="${t.total%60}" id="tsec-${t.id}" style="width:56px;text-align:center;" /><span>秒</span>
-        <button class="btn" onclick="resetTimer(${t.id})">重設</button>
+      <div class="drum-picker" id="drum-${t.id}"></div>
+      <div style="display:flex;justify-content:center;gap:24px;margin-bottom:4px;">
+        <span class="drum-label">時</span><span class="drum-label">分</span><span class="drum-label">秒</span>
       </div>
-      <div class="timer-display ${dispClass}" id="tdisp-${t.id}">${m}:${s}</div>
+      <div class="timer-display ${dispClass}" id="tdisp-${t.id}">${dispH}:${dispM}:${dispS}</div>
       <div class="timer-btns">
-        <button class="btn" id="tbtn-${t.id}" onclick="toggleTimer(${t.id})">${t.running ? '暫停' : (t.remaining<t.total&&t.remaining>0?'繼續':'開始')}</button>
+        <button class="btn" id="treset-${t.id}">重設</button>
+        <button class="btn" id="tbtn-${t.id}" style="min-width:72px;">${t.running?'暫停':(t.remaining<t.total&&t.remaining>0?'繼續':'開始')}</button>
       </div>
     `;
     el.appendChild(div);
+
+    // 建立滾輪
+    const picker = div.querySelector(`#drum-${t.id}`);
+    const initH=Math.floor(t.total/3600), initM=Math.floor((t.total%3600)/60), initS=t.total%60;
+    const dH=makeDrumCol(24,initH,true);
+    const dM=makeDrumCol(60,initM,true);
+    const dS=makeDrumCol(60,initS,true);
+    const sep1=document.createElement('span'); sep1.className='drum-sep'; sep1.textContent=':';
+    const sep2=document.createElement('span'); sep2.className='drum-sep'; sep2.textContent=':';
+    picker.appendChild(dH); picker.appendChild(sep1); picker.appendChild(dM); picker.appendChild(sep2); picker.appendChild(dS);
+    t.drumH=dH; t.drumM=dM; t.drumS=dS;
+
+    div.querySelector('.timer-label input').addEventListener('change', e=>{ t.label=e.target.value; });
+    div.querySelector('.btn-remove').addEventListener('click', ()=>removeTimer(t.id));
+    div.querySelector(`#treset-${t.id}`).addEventListener('click', ()=>resetTimer(t.id));
+    div.querySelector(`#tbtn-${t.id}`).addEventListener('click', ()=>toggleTimer(t.id));
   });
 }
-function updateTimerLabel(id,val) { const t=timers.find(x=>x.id===id); if(t) t.label=val; }
+
 function toggleTimer(id) {
   const t = timers.find(x=>x.id===id);
   if (!t || t.remaining===0) return;
@@ -1240,37 +1319,44 @@ function toggleTimer(id) {
     t.running=true;
     t.interval = setInterval(()=>{
       t.remaining--;
-      const m=String(Math.floor(t.remaining/60)).padStart(2,'0');
-      const s=String(t.remaining%60).padStart(2,'0');
+      const h=Math.floor(t.remaining/3600), m=Math.floor((t.remaining%3600)/60), s=t.remaining%60;
       const d=document.getElementById('tdisp-'+t.id);
       const b=document.getElementById('tbtn-'+t.id);
-      if(d) { d.textContent=m+':'+s; d.className='timer-display '+(t.remaining===0?'done':'running'); }
-      if(b) b.textContent='暫停';
-      if(t.remaining===0) {
+      if(d){ d.textContent=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0'); d.className='timer-display '+(t.remaining===0?'done':'running'); }
+      if(t.remaining===0){
         clearInterval(t.interval); t.running=false;
         if(b) b.textContent='開始';
         playBeep();
       }
     },1000);
   }
-  renderTimers();
+  const b=document.getElementById('tbtn-'+id);
+  if(b) b.textContent=t.running?'暫停':(t.remaining<t.total&&t.remaining>0?'繼續':'開始');
 }
+
 function resetTimer(id) {
   const t=timers.find(x=>x.id===id);
   if(!t) return;
   clearInterval(t.interval); t.running=false;
-  const m=parseInt(document.getElementById('tmin-'+id)?.value)||0;
-  const s=parseInt(document.getElementById('tsec-'+id)?.value)||0;
-  t.total=(m*60+s)||600; t.remaining=t.total;
-  renderTimers();
+  const h=t.drumH?t.drumH.getValue():0;
+  const m=t.drumM?t.drumM.getValue():0;
+  const s=t.drumS?t.drumS.getValue():0;
+  t.total=(h*3600+m*60+s)||600; t.remaining=t.total;
+  const rh=Math.floor(t.remaining/3600), rm=Math.floor((t.remaining%3600)/60), rs=t.remaining%60;
+  const d=document.getElementById('tdisp-'+id);
+  const b=document.getElementById('tbtn-'+id);
+  if(d){ d.textContent=String(rh).padStart(2,'0')+':'+String(rm).padStart(2,'0')+':'+String(rs).padStart(2,'0'); d.className='timer-display'; }
+  if(b) b.textContent='開始';
 }
+
 function removeTimer(id) {
   const t=timers.find(x=>x.id===id);
   if(t) clearInterval(t.interval);
   timers=timers.filter(x=>x.id!==id);
   renderTimers();
 }
-document.getElementById('addTimerBtn').addEventListener('click', ()=>createTimer('',10,0));
+
+document.getElementById('addTimerBtn').addEventListener('click', ()=>createTimer('',0,10,0));
 renderTimers();
 
 /* ════════════════════════════
