@@ -387,9 +387,65 @@
   .star-btn { appearance:none; border:none; background:none; font-size:22px; cursor:pointer; color:var(--line); padding:0 2px; }
   .star-btn.active { color:var(--rust); }
   .note-empty { font-size:14px; color:var(--ink-soft); text-align:center; padding:2rem 0; }
+  /* Splash Screen */
+  #splash {
+    position: fixed;
+    inset: 0;
+    background: var(--rust);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    transition: opacity 0.6s ease;
+  }
+  #splash.hide {
+    opacity: 0;
+    pointer-events: none;
+  }
+  #splash .splash-icon {
+    width: 100px;
+    height: 100px;
+    border-radius: 24px;
+    overflow: hidden;
+    margin-bottom: 20px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    animation: splashPop 0.5s cubic-bezier(.34,1.56,.64,1) both;
+  }
+  #splash .splash-icon img { width: 100%; height: 100%; object-fit: cover; }
+  #splash .splash-name {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 0.05em;
+    animation: splashFade 0.5s 0.2s ease both;
+  }
+  #splash .splash-sub {
+    font-size: 13px;
+    color: rgba(255,255,255,0.7);
+    margin-top: 6px;
+    letter-spacing: 0.1em;
+    animation: splashFade 0.5s 0.35s ease both;
+  }
+  @keyframes splashPop {
+    from { transform: scale(0.6); opacity: 0; }
+    to   { transform: scale(1);   opacity: 1; }
+  }
+  @keyframes splashFade {
+    from { transform: translateY(10px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
 </style>
 </head>
 <body>
+
+<!-- Splash Screen -->
+<div id="splash">
+  <div class="splash-icon"><img src="icon-192.png" alt="Baking Studio" /></div>
+  <div class="splash-name">Baking Studio</div>
+  <div class="splash-sub">自己的烘焙筆記</div>
+</div>
 
 <!-- Top Bar -->
 <div class="topbar">
@@ -662,6 +718,15 @@
 <footer>純前端計算，所有資料只留在這台裝置上。</footer>
 
 <script>
+
+// Splash Screen
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    const splash = document.getElementById('splash');
+    splash.classList.add('hide');
+    setTimeout(() => splash.remove(), 700);
+  }, 1800);
+});
 
 // Drawer
 const drawer = document.getElementById('drawer');
