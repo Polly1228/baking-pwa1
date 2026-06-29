@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="烘焙小天地">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700&family=Noto+Sans+TC:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -31,60 +31,119 @@
     font-family: 'Noto Sans TC', 'Inter', sans-serif;
     font-size: 16px;
     line-height: 1.75;
-    padding: 0 0 4rem;
+    padding: 0 0 calc(4rem + env(safe-area-inset-bottom));
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
   }
-  header {
-    padding: 2.5rem 1.5rem 1.5rem;
-    text-align: center;
-  }
-  header .eyebrow {
-    font-size: 13px;
-    letter-spacing: 0.12em;
-    color: var(--ink-soft);
-    margin: 0 0 8px;
-  }
-  header h1 {
-    font-family: 'Noto Serif TC', serif;
-    font-size: 36px;
-    font-weight: 700;
-    letter-spacing: 0.01em;
-    margin: 0 0 6px;
-  }
-  nav {
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-    border-bottom: 1px solid var(--line);
-    padding: 0 1rem 1.75rem;
-    margin-bottom: 2.5rem;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-  nav::-webkit-scrollbar { display: none; }
-  nav button {
-    appearance: none;
-    border: 1px solid var(--line);
+
+  /* ── Top Bar ── */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
     background: var(--paper);
-    color: var(--ink-soft);
-    border-radius: 999px;
-    padding: 10px 16px;
-    font-size: 15px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    padding: calc(env(safe-area-inset-top) + 10px) 16px 10px;
+    gap: 12px;
+  }
+  .topbar h1 {
     font-family: 'Noto Serif TC', serif;
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0;
+    flex: 1;
+  }
+  .hamburger {
+    appearance: none;
+    border: none;
+    background: none;
     cursor: pointer;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    justify-content: center;
+  }
+  .hamburger span {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: var(--ink);
+    border-radius: 2px;
+    transition: all 0.25s;
+  }
+
+  /* ── Drawer Overlay ── */
+  .drawer-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    z-index: 200;
+  }
+  .drawer-overlay.open { display: block; }
+
+  /* ── Drawer ── */
+  .drawer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 260px;
+    background: var(--paper);
+    z-index: 300;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+    display: flex;
+    flex-direction: column;
+    padding-top: env(safe-area-inset-top);
+    box-shadow: 4px 0 24px rgba(0,0,0,0.12);
+  }
+  .drawer.open { transform: translateX(0); }
+  .drawer-header {
+    padding: 24px 20px 16px;
+    border-bottom: 1px solid var(--line);
+  }
+  .drawer-header p { margin: 0; font-size: 12px; color: var(--ink-soft); letter-spacing: 0.1em; }
+  .drawer-header h2 { margin: 4px 0 0; font-family: 'Noto Serif TC', serif; font-size: 22px; }
+  .drawer nav {
+    display: flex;
+    flex-direction: column;
+    padding: 12px 0;
+    border-bottom: none;
+    margin: 0;
+    gap: 0;
+    overflow: visible;
+  }
+  .drawer nav button {
+    appearance: none;
+    border: none;
+    background: none;
+    text-align: left;
+    padding: 14px 20px;
+    font-size: 16px;
+    font-family: 'Noto Serif TC', serif;
+    color: var(--ink-soft);
+    cursor: pointer;
+    border-radius: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
     white-space: nowrap;
-    flex: 0 0 auto;
+    flex: unset;
   }
-  nav button.active {
-    background: var(--rust);
-    color: #fff;
-    border-color: var(--rust);
-  }
+  .drawer nav button .nav-icon { font-size: 18px; width: 24px; text-align: center; }
+  .drawer nav button.active { color: var(--rust); background: var(--bg-accent); font-weight: 600; }
+  .drawer nav button:hover { background: var(--cream); }
+
+  header { display: none; }
+
   main {
     max-width: 700px;
     margin: 0 auto;
-    padding: 0 1.5rem;
+    padding: 1.5rem 1.5rem 0;
   }
   .page { display: none; }
   .page.active { display: block; }
@@ -283,41 +342,72 @@
   .stat.accent .value { color: var(--rust-deep); }
   .note { font-size: 12.5px; color: var(--ink-soft); margin-top: 0.5rem; }
   footer { text-align: center; font-size: 12px; color: var(--ink-soft); margin-top: 2.5rem; }
+
+  /* 計時器 */
+  .timer-item { background: var(--cream); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1rem; }
+  .timer-item .timer-label { font-size: 14px; font-weight: 600; margin-bottom: 6px; display:flex; align-items:center; gap:8px; }
+  .timer-item .timer-label input { flex:1; background:none; border:none; border-bottom:1px solid var(--line); border-radius:0; font-size:14px; font-weight:600; padding:0 4px; height:28px; }
+  .timer-display { font-size: 42px; font-weight: 700; font-family:'Inter',sans-serif; text-align:center; letter-spacing:0.04em; margin: 8px 0; color: var(--ink); }
+  .timer-display.running { color: var(--rust); }
+  .timer-display.done { color: var(--rust-deep); }
+  .timer-set { display:flex; gap:6px; align-items:center; justify-content:center; margin-bottom:10px; }
+  .timer-set input { width: 56px; text-align:center; }
+  .timer-set span { font-size:13px; color:var(--ink-soft); }
+  .timer-btns { display:flex; gap:8px; justify-content:center; }
+
+  /* 購物清單 */
+  .shop-item { display:flex; align-items:center; gap:12px; padding:10px 2px; border-top:1px solid var(--line); cursor:pointer; user-select:none; font-size:14.5px; }
+  .shop-item:first-child { border-top:none; }
+  .shop-item .shop-checkbox { width:18px; height:18px; flex:0 0 auto; border:1.5px solid var(--line); border-radius:5px; display:flex; align-items:center; justify-content:center; }
+  .shop-item.checked .shop-checkbox { background:var(--rust); border-color:var(--rust); }
+  .shop-item.checked .shop-checkbox::after { content:"✓"; color:#fff; font-size:12px; }
+  .shop-item.checked .shop-name { text-decoration:line-through; color:var(--ink-soft); }
+  .shop-item .shop-name { flex:1; }
+  .shop-item .shop-del { border:none; background:none; color:var(--ink-soft); cursor:pointer; font-size:16px; padding:2px 6px; }
+  .shop-item .shop-del:hover { color:var(--rust); }
+
+  /* 筆記 */
+  .note-item { background:var(--cream); border:1px solid var(--line); border-radius:12px; padding:1rem 1.25rem; margin-bottom:1rem; cursor:pointer; }
+  .note-item:hover { border-color:var(--rust); }
+  .note-item .note-head { display:flex; align-items:baseline; gap:8px; margin-bottom:4px; }
+  .note-item .note-item-title { font-weight:600; font-size:15px; flex:1; }
+  .note-item .note-date { font-size:12px; color:var(--ink-soft); }
+  .note-item .note-stars { color:var(--rust); font-size:13px; }
+  .note-item .note-preview { font-size:13px; color:var(--ink-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .star-btn { appearance:none; border:none; background:none; font-size:22px; cursor:pointer; color:var(--line); padding:0 2px; }
+  .star-btn.active { color:var(--rust); }
+  .note-empty { font-size:14px; color:var(--ink-soft); text-align:center; padding:2rem 0; }
 </style>
 </head>
 <body>
 
-<header>
-  <p class="eyebrow">自己的烘焙筆記</p>
-  <h1>烘焙小天地</h1>
-  <svg width="180" height="36" viewBox="0 0 180 36" style="margin-top:8px;" aria-hidden="true">
-    <g stroke="var(--ink-soft)" stroke-width="1.5" fill="none" stroke-linecap="round">
-      <line x1="26" y1="32" x2="26" y2="6"/>
-      <path d="M26 10 L20 4 M26 10 L32 4"/>
-      <path d="M26 16 L20 10 M26 16 L32 10"/>
-      <path d="M26 22 L20 16 M26 22 L32 16"/>
-    </g>
-    <g stroke="var(--ink-soft)" stroke-width="1.5" stroke-linecap="round">
-      <line x1="70" y1="18" x2="110" y2="18" stroke-width="6"/>
-      <line x1="60" y1="18" x2="70" y2="18"/>
-      <line x1="110" y1="18" x2="120" y2="18"/>
-      <circle cx="58" cy="18" r="2.5" fill="var(--ink-soft)" stroke="none"/>
-      <circle cx="122" cy="18" r="2.5" fill="var(--ink-soft)" stroke="none"/>
-    </g>
-    <g>
-      <path d="M152 8 C154 13 158 15 158 15 M152 8 C150 13 146 15 146 15" stroke="var(--rust)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-      <circle cx="146" cy="21" r="5.5" fill="var(--rust)"/>
-      <circle cx="158" cy="21" r="5.5" fill="var(--rust)"/>
-    </g>
-  </svg>
-</header>
+<!-- Top Bar -->
+<div class="topbar">
+  <button class="hamburger" id="menuBtn" aria-label="開啟選單">
+    <span></span><span></span><span></span>
+  </button>
+  <h1 id="topbarTitle">食譜查詢</h1>
+</div>
 
-<nav>
-  <button class="nav-btn active" data-page="recipe">食譜查詢</button>
-  <button class="nav-btn" data-page="favorites">我的收藏</button>
-  <button class="nav-btn" data-page="convert">單位換算</button>
-  <button class="nav-btn" data-page="cost">成本計算</button>
-</nav>
+<!-- Drawer Overlay -->
+<div class="drawer-overlay" id="drawerOverlay"></div>
+
+<!-- Drawer -->
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <p>自己的烘焙筆記</p>
+    <h2>烘焙小天地</h2>
+  </div>
+  <nav>
+    <button class="nav-btn active" data-page="recipe"><span class="nav-icon">🔍</span>食譜查詢</button>
+    <button class="nav-btn" data-page="favorites"><span class="nav-icon">⭐</span>我的收藏</button>
+    <button class="nav-btn" data-page="convert"><span class="nav-icon">⚖️</span>單位換算</button>
+    <button class="nav-btn" data-page="cost"><span class="nav-icon">💰</span>成本計算</button>
+    <button class="nav-btn" data-page="timer"><span class="nav-icon">⏱️</span>計時器</button>
+    <button class="nav-btn" data-page="shopping"><span class="nav-icon">🛒</span>購物清單</button>
+    <button class="nav-btn" data-page="notes"><span class="nav-icon">📝</span>試作筆記</button>
+  </nav>
+</div>
 
 <main>
 
@@ -491,17 +581,95 @@
     </div>
   </section>
 
+  <!-- 計時器 -->
+  <section class="page" id="page-timer">
+    <div class="card">
+      <div class="card-head"><h2>烘焙計時器</h2><span class="sub">支援多組同時計時</span></div>
+      <div style="display:flex;gap:8px;margin-bottom:1.25rem;flex-wrap:wrap;">
+        <button class="btn" id="addTimerBtn">+ 新增計時器</button>
+      </div>
+      <div id="timerList"></div>
+    </div>
+  </section>
+
+  <!-- 購物清單 -->
+  <section class="page" id="page-shopping">
+    <div class="card">
+      <div class="card-head"><h2>購物清單</h2><span class="sub">從食譜加入或手動新增</span></div>
+      <div style="display:flex;gap:8px;margin-bottom:1rem;">
+        <input id="shopInput" type="text" placeholder="輸入材料名稱" style="flex:1;" />
+        <button class="btn" id="shopAddBtn">新增</button>
+      </div>
+      <ul class="equip-list" id="shopList"></ul>
+      <div style="margin-top:1rem;display:flex;gap:8px;">
+        <button class="btn" id="shopClearDoneBtn">清除已勾選</button>
+        <button class="btn" id="shopClearAllBtn" style="margin-left:auto;color:var(--rust-deep);">全部清除</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 試作筆記 -->
+  <section class="page" id="page-notes">
+    <div class="card">
+      <div class="card-head"><h2>試作筆記</h2><span class="sub">記錄每次烘焙的心得</span></div>
+      <button class="btn" id="addNoteBtn" style="margin-bottom:1.25rem;">+ 新增筆記</button>
+      <div id="noteList"></div>
+    </div>
+    <div class="card" id="noteEditCard" style="display:none;">
+      <div class="card-head"><h2 id="noteEditTitle">新增筆記</h2></div>
+      <div class="row">
+        <div><label>標題</label><input id="noteTitle" type="text" placeholder="例如：第二次試做司康" /></div>
+        <div><label>日期</label><input id="noteDate" type="date" /></div>
+      </div>
+      <div style="margin-bottom:1rem;">
+        <label>關聯食譜（選填）</label>
+        <select id="noteRecipeLink"><option value="">— 不關聯 —</option></select>
+      </div>
+      <div style="margin-bottom:1rem;">
+        <label>結果評分</label>
+        <div style="display:flex;gap:8px;margin-top:4px;" id="noteStars">
+          <button class="star-btn" data-v="1">★</button>
+          <button class="star-btn" data-v="2">★</button>
+          <button class="star-btn" data-v="3">★</button>
+          <button class="star-btn" data-v="4">★</button>
+          <button class="star-btn" data-v="5">★</button>
+        </div>
+      </div>
+      <div style="margin-bottom:1rem;">
+        <label>筆記內容</label>
+        <textarea id="noteContent" rows="5" style="width:100%;font-family:'Noto Sans TC','Inter',sans-serif;font-size:15px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--cream);color:var(--ink);"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn" id="saveNoteBtn">儲存</button>
+        <button class="btn" id="cancelNoteBtn">取消</button>
+        <button class="btn" id="deleteNoteBtn" style="display:none;margin-left:auto;color:var(--rust-deep);">刪除</button>
+      </div>
+    </div>
+  </section>
+
 </main>
 
-<footer>純前端計算，所有資料只留在這台裝置上。收藏的食譜會留存在這個瀏覽器裡，但成本計算與單位換算的輸入重新整理會清空。</footer>
+<footer>純前端計算，所有資料只留在這台裝置上。</footer>
 
 <script>
+// Drawer
+const drawer = document.getElementById('drawer');
+const overlay = document.getElementById('drawerOverlay');
+const menuBtn = document.getElementById('menuBtn');
+function openDrawer() { drawer.classList.add('open'); overlay.classList.add('open'); }
+function closeDrawer() { drawer.classList.remove('open'); overlay.classList.remove('open'); }
+menuBtn.addEventListener('click', openDrawer);
+overlay.addEventListener('click', closeDrawer);
+
+const pageTitles = { recipe:'食譜查詢', favorites:'我的收藏', convert:'單位換算', cost:'成本計算' };
+
 document.querySelectorAll('.nav-btn').forEach(btn => {
-  btn.addEventListener('click', () => switchPage(btn.dataset.page));
+  btn.addEventListener('click', () => { switchPage(btn.dataset.page); closeDrawer(); });
 });
 function switchPage(page) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.page === page));
   document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === 'page-' + page));
+  document.getElementById('topbarTitle').textContent = pageTitles[page] || '';
 }
 
 const recipes = [
@@ -998,6 +1166,213 @@ document.getElementById('applyRecipeBtn').addEventListener('click', () => {
 </script>
 
 <script>
+/* ── pageTitles 補上新頁面 ── */
+pageTitles.timer = '計時器';
+pageTitles.shopping = '購物清單';
+pageTitles.notes = '試作筆記';
+
+/* ════════════════════════════
+   計時器
+════════════════════════════ */
+let timers = [];
+function createTimer(label='', minutes=10, seconds=0) {
+  const id = Date.now();
+  const total = (parseInt(minutes)||0)*60 + (parseInt(seconds)||0);
+  timers.push({ id, label: label||'計時器', total, remaining: total, running: false, interval: null });
+  renderTimers();
+}
+function renderTimers() {
+  const el = document.getElementById('timerList');
+  if (!timers.length) { el.innerHTML = '<p class="note" style="text-align:center;padding:1rem 0;">點「新增計時器」開始計時</p>'; return; }
+  el.innerHTML = '';
+  timers.forEach(t => {
+    const div = document.createElement('div');
+    div.className = 'timer-item';
+    div.id = 'timer-' + t.id;
+    const m = String(Math.floor(t.remaining/60)).padStart(2,'0');
+    const s = String(t.remaining%60).padStart(2,'0');
+    const dispClass = t.remaining===0 ? 'done' : t.running ? 'running' : '';
+    div.innerHTML = `
+      <div class="timer-label">
+        <input type="text" value="${t.label}" onchange="updateTimerLabel(${t.id},this.value)" />
+        <button class="btn-remove" onclick="removeTimer(${t.id})">✕</button>
+      </div>
+      <div class="timer-set">
+        <input type="number" min="0" max="99" value="${Math.floor(t.total/60)}" id="tmin-${t.id}" style="width:56px;text-align:center;" /><span>分</span>
+        <input type="number" min="0" max="59" value="${t.total%60}" id="tsec-${t.id}" style="width:56px;text-align:center;" /><span>秒</span>
+        <button class="btn" onclick="resetTimer(${t.id})">重設</button>
+      </div>
+      <div class="timer-display ${dispClass}" id="tdisp-${t.id}">${m}:${s}</div>
+      <div class="timer-btns">
+        <button class="btn" id="tbtn-${t.id}" onclick="toggleTimer(${t.id})">${t.running ? '暫停' : (t.remaining<t.total&&t.remaining>0?'繼續':'開始')}</button>
+      </div>
+    `;
+    el.appendChild(div);
+  });
+}
+function updateTimerLabel(id,val) { const t=timers.find(x=>x.id===id); if(t) t.label=val; }
+function toggleTimer(id) {
+  const t = timers.find(x=>x.id===id);
+  if (!t || t.remaining===0) return;
+  if (t.running) {
+    clearInterval(t.interval); t.running=false;
+  } else {
+    t.running=true;
+    t.interval = setInterval(()=>{
+      t.remaining--;
+      const m=String(Math.floor(t.remaining/60)).padStart(2,'0');
+      const s=String(t.remaining%60).padStart(2,'0');
+      const d=document.getElementById('tdisp-'+t.id);
+      const b=document.getElementById('tbtn-'+t.id);
+      if(d) { d.textContent=m+':'+s; d.className='timer-display '+(t.remaining===0?'done':'running'); }
+      if(b) b.textContent='暫停';
+      if(t.remaining===0) {
+        clearInterval(t.interval); t.running=false;
+        if(b) b.textContent='開始';
+        if('vibrate' in navigator) navigator.vibrate([400,100,400,100,400]);
+      }
+    },1000);
+  }
+  renderTimers();
+}
+function resetTimer(id) {
+  const t=timers.find(x=>x.id===id);
+  if(!t) return;
+  clearInterval(t.interval); t.running=false;
+  const m=parseInt(document.getElementById('tmin-'+id)?.value)||0;
+  const s=parseInt(document.getElementById('tsec-'+id)?.value)||0;
+  t.total=(m*60+s)||600; t.remaining=t.total;
+  renderTimers();
+}
+function removeTimer(id) {
+  const t=timers.find(x=>x.id===id);
+  if(t) clearInterval(t.interval);
+  timers=timers.filter(x=>x.id!==id);
+  renderTimers();
+}
+document.getElementById('addTimerBtn').addEventListener('click', ()=>createTimer('',10,0));
+renderTimers();
+
+/* ════════════════════════════
+   購物清單
+════════════════════════════ */
+const SHOP_KEY='bakingShopList';
+function getShopList(){try{return JSON.parse(localStorage.getItem(SHOP_KEY)||'[]');}catch{return[];}}
+function saveShopList(l){try{localStorage.setItem(SHOP_KEY,JSON.stringify(l));}catch{}}
+function renderShopList(){
+  const list=getShopList();
+  const el=document.getElementById('shopList');
+  el.innerHTML='';
+  if(!list.length){el.innerHTML='<li style="padding:1rem 0;font-size:14px;color:var(--ink-soft);text-align:center;">清單是空的</li>';return;}
+  list.forEach((item,i)=>{
+    const li=document.createElement('li');
+    li.className='shop-item'+(item.done?' checked':'');
+    li.innerHTML=`<span class="shop-checkbox"></span><span class="shop-name">${item.name}</span><button class="shop-del" aria-label="刪除">✕</button>`;
+    li.addEventListener('click',(e)=>{if(e.target.classList.contains('shop-del'))return;item.done=!item.done;saveShopList(list);renderShopList();});
+    li.querySelector('.shop-del').addEventListener('click',(e)=>{e.stopPropagation();list.splice(i,1);saveShopList(list);renderShopList();});
+    el.appendChild(li);
+  });
+}
+function addShopItem(name){
+  if(!name.trim()) return;
+  const list=getShopList();
+  list.push({name:name.trim(),done:false});
+  saveShopList(list);renderShopList();
+}
+document.getElementById('shopAddBtn').addEventListener('click',()=>{
+  const inp=document.getElementById('shopInput');
+  addShopItem(inp.value); inp.value='';
+});
+document.getElementById('shopInput').addEventListener('keydown',(e)=>{
+  if(e.key==='Enter'){const inp=e.target;addShopItem(inp.value);inp.value='';}
+});
+document.getElementById('shopClearDoneBtn').addEventListener('click',()=>{
+  saveShopList(getShopList().filter(x=>!x.done));renderShopList();
+});
+document.getElementById('shopClearAllBtn').addEventListener('click',()=>{
+  if(confirm('確定清除所有項目？')){saveShopList([]);renderShopList();}
+});
+
+// 從食譜帶入購物清單的按鈕（加在 addToCostBtn 旁）
+document.getElementById('addToCostBtn').insertAdjacentHTML('afterend',
+  '<button class="btn" id="addToShopBtn" style="margin-left:4px;">加入購物清單 →</button>'
+);
+document.getElementById('addToShopBtn').addEventListener('click',()=>{
+  if(!activeRecipe) return;
+  const multiplier=parseFloat(document.getElementById('scaleMultiplier').value)||1;
+  activeRecipe.ingredients.forEach(ing=>{
+    if(ing.unit==='適量'||ing.unit==='少許'){addShopItem(ing.name);return;}
+    const scaled=ing.unit==='g'||ing.unit==='ml'?Math.round(ing.amount*multiplier):Math.round(ing.amount*multiplier*2)/2;
+    addShopItem(ing.name+' '+scaled+' '+ing.unit);
+  });
+  switchPage('shopping');
+});
+renderShopList();
+
+/* ════════════════════════════
+   試作筆記
+════════════════════════════ */
+const NOTES_KEY='bakingNotes';
+function getNotes(){try{return JSON.parse(localStorage.getItem(NOTES_KEY)||'[]');}catch{return[];}}
+function saveNotes(l){try{localStorage.setItem(NOTES_KEY,JSON.stringify(l));}catch{}}
+let editingNoteId=null, noteRating=0;
+
+function renderNoteList(){
+  const notes=getNotes().sort((a,b)=>b.date.localeCompare(a.date));
+  const el=document.getElementById('noteList');
+  el.innerHTML='';
+  if(!notes.length){el.innerHTML='<div class="note-empty">還沒有筆記，按「新增筆記」開始記錄吧！</div>';return;}
+  notes.forEach(n=>{
+    const div=document.createElement('div');
+    div.className='note-item';
+    div.innerHTML=`<div class="note-head"><span class="note-item-title">${n.title||'無標題'}</span><span class="note-date">${n.date}</span></div><div class="note-stars">${'★'.repeat(n.rating||0)+'☆'.repeat(5-(n.rating||0))}</div><div class="note-preview">${n.content||'（無內容）'}</div>`;
+    div.addEventListener('click',()=>openNoteEditor(n));
+    el.appendChild(div);
+  });
+}
+function openNoteEditor(note){
+  editingNoteId=note?note.id:null;
+  noteRating=note?note.rating||0:0;
+  document.getElementById('noteEditTitle').textContent=note?'編輯筆記':'新增筆記';
+  document.getElementById('noteTitle').value=note?note.title:'';
+  document.getElementById('noteDate').value=note?note.date:new Date().toISOString().slice(0,10);
+  document.getElementById('noteContent').value=note?note.content:'';
+  document.getElementById('noteRecipeLink').value=note&&note.recipeId?note.recipeId:'';
+  document.getElementById('deleteNoteBtn').style.display=note?'inline-block':'none';
+  updateNoteStars(noteRating);
+  document.getElementById('noteEditCard').style.display='block';
+  document.getElementById('noteEditCard').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function updateNoteStars(v){
+  noteRating=v;
+  document.querySelectorAll('.star-btn').forEach(b=>{
+    b.classList.toggle('active',parseInt(b.dataset.v)<=v);
+  });
+}
+function refreshNoteRecipeSelect(){
+  const sel=document.getElementById('noteRecipeLink');
+  const prev=sel.value;
+  sel.innerHTML='<option value="">— 不關聯 —</option>'+getAllRecipes().map(r=>`<option value="${r.id}">${r.name}</option>`).join('');
+  if(prev) sel.value=prev;
+}
+document.querySelectorAll('.star-btn').forEach(b=>b.addEventListener('click',()=>updateNoteStars(parseInt(b.dataset.v))));
+document.getElementById('addNoteBtn').addEventListener('click',()=>openNoteEditor(null));
+document.getElementById('cancelNoteBtn').addEventListener('click',()=>{document.getElementById('noteEditCard').style.display='none';});
+document.getElementById('saveNoteBtn').addEventListener('click',()=>{
+  const notes=getNotes();
+  const data={id:editingNoteId||Date.now(),title:document.getElementById('noteTitle').value.trim()||'無標題',date:document.getElementById('noteDate').value,content:document.getElementById('noteContent').value.trim(),rating:noteRating,recipeId:document.getElementById('noteRecipeLink').value};
+  if(editingNoteId){const i=notes.findIndex(n=>n.id===editingNoteId);if(i>=0)notes[i]=data;else notes.push(data);}
+  else notes.push(data);
+  saveNotes(notes);renderNoteList();
+  document.getElementById('noteEditCard').style.display='none';
+});
+document.getElementById('deleteNoteBtn').addEventListener('click',()=>{
+  if(!editingNoteId||!confirm('確定刪除這筆筆記？'))return;
+  saveNotes(getNotes().filter(n=>n.id!==editingNoteId));
+  renderNoteList();document.getElementById('noteEditCard').style.display='none';
+});
+refreshNoteRecipeSelect();renderNoteList();
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js');
