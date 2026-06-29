@@ -391,60 +391,72 @@
   #splash {
     position: fixed;
     inset: 0;
-    background: var(--rust);
+    background: #F6EDDD;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
     z-index: 9999;
     transition: opacity 0.6s ease;
   }
-  #splash.hide {
-    opacity: 0;
-    pointer-events: none;
-  }
-  #splash .splash-icon {
-    width: 100px;
-    height: 100px;
-    border-radius: 24px;
-    overflow: hidden;
-    margin-bottom: 20px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-    animation: splashPop 0.5s cubic-bezier(.34,1.56,.64,1) both;
-  }
-  #splash .splash-icon img { width: 100%; height: 100%; object-fit: cover; }
-  #splash .splash-name {
-    font-family: 'Noto Serif TC', serif;
-    font-size: 28px;
-    font-weight: 700;
-    color: #fff;
-    letter-spacing: 0.05em;
-    animation: splashFade 0.5s 0.2s ease both;
-  }
-  #splash .splash-sub {
-    font-size: 13px;
-    color: rgba(255,255,255,0.7);
-    margin-top: 6px;
-    letter-spacing: 0.1em;
-    animation: splashFade 0.5s 0.35s ease both;
-  }
-  @keyframes splashPop {
-    from { transform: scale(0.6); opacity: 0; }
-    to   { transform: scale(1);   opacity: 1; }
-  }
-  @keyframes splashFade {
-    from { transform: translateY(10px); opacity: 0; }
-    to   { transform: translateY(0);    opacity: 1; }
-  }
+  #splash.hide { opacity: 0; pointer-events: none; }
+  #splash .petal, #splash .crumb { transform-box: fill-box; transform-origin: center; }
+  #splash .ctr { transform-box: fill-box; transform-origin: center; }
+  #splash .petal, #splash .crumb, #splash .ctr, #splash .word, #splash .word2 { opacity: 0; }
+  #splash .bar-fill { transform: scaleX(.4); transform-origin: left center; }
+  #splash .pbar, #splash .hint { opacity: 0; }
+  @keyframes petalPop { 0%{opacity:0;transform:scale(0)} 70%{opacity:1;transform:scale(1.14)} 100%{opacity:1;transform:scale(1)} }
+  @keyframes ctrIn    { 0%{opacity:0;transform:scale(0)} 100%{opacity:1;transform:scale(1)} }
+  @keyframes crumbFly { 0%{opacity:0;transform:scale(0) translate(-10px,7px)} 60%{opacity:1} 100%{opacity:1;transform:scale(1) translate(0,0)} }
+  @keyframes wordIn   { 0%{opacity:0;transform:translateY(10px)} 100%{opacity:1;transform:translateY(0)} }
+  @keyframes barFill  { from{transform:scaleX(.4)} to{transform:scaleX(1)} }
+  @keyframes splashFadeIn { to{opacity:1} }
+  @keyframes breathe  { 0%,100%{transform:scale(1)} 50%{transform:scale(1.025)} }
+  #splash.play .petal    { animation: petalPop .55s cubic-bezier(.34,1.56,.64,1) both; }
+  #splash.play .ctr      { animation: ctrIn .4s cubic-bezier(.34,1.56,.64,1) .5s both; }
+  #splash.play .crumb    { animation: crumbFly .5s ease-out .72s both; }
+  #splash.play .cookie   { animation: breathe 3.2s ease-in-out 1.8s infinite; }
+  #splash.play .word     { animation: wordIn 1.05s cubic-bezier(.25,.6,.3,1) .85s both; }
+  #splash.play .word2    { animation: wordIn 1.05s cubic-bezier(.25,.6,.3,1) 1.1s both; }
+  #splash.play .pbar     { animation: splashFadeIn .4s ease 1.0s forwards; }
+  #splash.play .hint     { animation: splashFadeIn .4s ease 1.1s forwards; }
+  #splash.play .bar-fill { animation: barFill 1.55s cubic-bezier(.45,.05,.25,1) .25s both; }
 </style>
 </head>
 <body>
 
 <!-- Splash Screen -->
 <div id="splash">
-  <div class="splash-icon"><img src="icon-192.png" alt="Baking Studio" /></div>
-  <div class="splash-name">Baking Studio</div>
-  <div class="splash-sub">自己的烘焙筆記</div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:38px;transform:translateY(-26px);">
+    <svg class="cookie" viewBox="0 0 200 200" width="190" height="190" fill="none">
+      <defs><mask id="biteSplash"><rect width="200" height="200" fill="#fff"/><circle cx="151" cy="55" r="33" fill="#000"/></mask></defs>
+      <g mask="url(#biteSplash)" fill="#B5743C">
+        <circle class="petal" style="animation-delay:.00s" cx="100" cy="56" r="34"/>
+        <circle class="petal" style="animation-delay:.05s" cx="138" cy="78" r="34"/>
+        <circle class="petal" style="animation-delay:.10s" cx="138" cy="122" r="34"/>
+        <circle class="petal" style="animation-delay:.15s" cx="100" cy="144" r="34"/>
+        <circle class="petal" style="animation-delay:.20s" cx="62" cy="122" r="34"/>
+        <circle class="petal" style="animation-delay:.25s" cx="62" cy="78" r="34"/>
+        <circle class="petal" style="animation-delay:.30s" cx="100" cy="100" r="40"/>
+      </g>
+      <g class="ctr">
+        <circle cx="100" cy="100" r="20" fill="#F6EDDD"/>
+        <circle cx="100" cy="100" r="9" fill="#9A5E2C"/>
+      </g>
+      <circle class="crumb" style="animation-delay:.72s" cx="170" cy="84" r="4" fill="#B5743C"/>
+      <circle class="crumb" style="animation-delay:.82s" cx="180" cy="62" r="2.8" fill="#B5743C"/>
+      <circle class="crumb" style="animation-delay:.92s" cx="158" cy="38" r="2.4" fill="#B5743C"/>
+    </svg>
+    <div style="text-align:center;">
+      <div class="word" style="font:700 24px 'Noto Sans TC',sans-serif;color:#4A3526;letter-spacing:.18em;">BAKING STUDIO</div>
+      <div class="word2" style="font:500 12px 'Noto Sans TC',sans-serif;color:#A88F76;letter-spacing:.26em;margin-top:8px;">我的烘焙小天地</div>
+    </div>
+  </div>
+  <div style="position:absolute;bottom:96px;display:flex;flex-direction:column;align-items:center;gap:16px;">
+    <div class="pbar" style="position:relative;width:150px;height:4px;border-radius:999px;background:#E5D6BD;overflow:hidden;">
+      <div class="bar-fill" style="position:absolute;left:0;top:0;height:100%;width:100%;border-radius:999px;background:#B5743C;"></div>
+    </div>
+    <div class="hint" style="font:500 11px 'Noto Sans TC',sans-serif;color:#B6A089;letter-spacing:.2em;">正在預熱烤箱…</div>
+  </div>
 </div>
 
 <!-- Top Bar -->
@@ -721,11 +733,12 @@
 
 // Splash Screen
 window.addEventListener('load', () => {
+  const splash = document.getElementById('splash');
+  splash.classList.add('play');
   setTimeout(() => {
-    const splash = document.getElementById('splash');
     splash.classList.add('hide');
     setTimeout(() => splash.remove(), 700);
-  }, 1800);
+  }, 3200);
 });
 
 // Drawer
