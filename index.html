@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>烘焙小天地</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#C1622D">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="烘焙小天地">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700&family=Noto+Sans+TC:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #FAF5EC;
+    --paper: #FFFDF9;
+    --ink: #3A2E27;
+    --ink-soft: #6B5D54;
+    --line: #E3D6C5;
+    --rust: #C1622D;
+    --rust-deep: #9A4A1F;
+    --bg-accent: #F3E6DA;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--cream);
+    color: var(--ink);
+    font-family: 'Noto Sans TC', 'Inter', sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    padding: 0 0 4rem;
+  }
+  header {
+    padding: 2.5rem 1.5rem 1.5rem;
+    text-align: center;
+  }
+  header .eyebrow {
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    color: var(--ink-soft);
+    margin: 0 0 8px;
+  }
+  header h1 {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    margin: 0 0 6px;
+  }
+  nav {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--line);
+    padding: 0 1rem 1.75rem;
+    margin-bottom: 2.5rem;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  nav::-webkit-scrollbar { display: none; }
+  nav button {
+    appearance: none;
+    border: 1px solid var(--line);
+    background: var(--paper);
+    color: var(--ink-soft);
+    border-radius: 999px;
+    padding: 10px 16px;
+    font-size: 15px;
+    font-family: 'Noto Serif TC', serif;
+    cursor: pointer;
+    white-space: nowrap;
+    flex: 0 0 auto;
+  }
+  nav button.active {
+    background: var(--rust);
+    color: #fff;
+    border-color: var(--rust);
+  }
+  main {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+  .page { display: none; }
+  .page.active { display: block; }
+  .card {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 2.25rem 2rem;
+    margin-bottom: 2rem;
+  }
+  .card-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 1.75rem;
+  }
+  .card-head h2 {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0;
+  }
+  .card-head .sub {
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-left: auto;
+  }
+  label {
+    font-size: 13px;
+    color: var(--ink-soft);
+    display: block;
+    margin-bottom: 5px;
+  }
+  input, select {
+    width: 100%;
+    height: 40px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--cream);
+    color: var(--ink);
+    font-family: 'Noto Sans TC', 'Inter', sans-serif;
+    font-size: 15px;
+    padding: 0 10px;
+  }
+  input:focus, select:focus { outline: none; border-color: var(--rust); }
+  .row { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  .row > div { flex: 1; min-width: 130px; }
+
+  .recipe-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+    margin-top: 1.25rem;
+  }
+  .recipe-chip {
+    border: 1px solid var(--line);
+    background: var(--cream);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 15px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    color: var(--ink);
+    position: relative;
+  }
+  .recipe-chip:hover { border-color: var(--rust); color: var(--rust-deep); }
+  .recipe-chip .meta { display: block; font-size: 12px; font-weight: 400; color: var(--ink-soft); margin-top: 2px; }
+  .empty-msg { font-size: 14px; color: var(--ink-soft); margin-top: 0.75rem; }
+  .fav-star {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 15px;
+    line-height: 1;
+    color: var(--line);
+    padding: 2px;
+  }
+  .fav-star.active { color: var(--rust); }
+  .fav-star-detail {
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 20px;
+    line-height: 1;
+    color: var(--line);
+    padding: 0 4px;
+  }
+  .fav-star-detail.active { color: var(--rust); }
+
+  .detail-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 0.5rem; }
+  .detail-head h3 { font-family: 'Noto Sans TC', 'Inter', sans-serif; font-size: 23px; font-weight: 700; margin: 0; }
+  .detail-meta { font-size: 13.5px; color: var(--ink-soft); margin: 0 0 1.25rem; }
+  .scale-row { display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem; }
+  .scale-row label { margin: 0; white-space: nowrap; }
+  .scale-row input { width: 90px; }
+  h4.section-title {
+    font-family: 'Noto Sans TC', 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--rust-deep);
+    margin: 1.75rem 0 0.75rem;
+  }
+  .equip-list { display: flex; flex-direction: column; gap: 0; padding: 0; margin: 0; list-style: none; font-size: 14.5px; }
+  .equip-list li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 2px;
+    border-top: 1px solid var(--line);
+    cursor: pointer;
+    user-select: none;
+  }
+  .equip-list li:first-child { border-top: none; }
+  .equip-checkbox {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+    border: 1.5px solid var(--line);
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .equip-list li.checked .equip-checkbox { background: var(--rust); border-color: var(--rust); }
+  .equip-list li.checked .equip-checkbox::after { content: "✓"; color: #fff; font-size: 12px; line-height: 1; }
+  .equip-list li.checked .equip-name { text-decoration: line-through; color: var(--ink-soft); }
+  table.ingredient-table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+  table.ingredient-table td { padding: 9px 0; }
+  table.ingredient-table tr { cursor: pointer; user-select: none; }
+  table.ingredient-table tr + tr td { border-top: 1px solid var(--line); }
+  .ing-checkbox {
+    width: 18px;
+    height: 18px;
+    border: 1.5px solid var(--line);
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  tr.checked .ing-checkbox { background: var(--rust); border-color: var(--rust); }
+  tr.checked .ing-checkbox::after { content: "✓"; color: #fff; font-size: 12px; line-height: 1; }
+  tr.checked .ing-name, tr.checked .ing-amount { text-decoration: line-through; color: var(--ink-soft); }
+  .ing-amount { text-align: right; font-weight: 600; width: 110px; }
+  ol.steps { margin: 0; padding-left: 1.25rem; font-size: 14.5px; }
+  ol.steps li { margin-bottom: 12px; }
+  .tip-box {
+    background: var(--cream);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    font-size: 13.5px;
+    color: var(--ink-soft);
+    margin-top: 1.5rem;
+  }
+  .btn {
+    appearance: none;
+    border: 1px solid var(--line);
+    background: var(--paper);
+    color: var(--ink);
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-family: 'Noto Sans TC', 'Inter', sans-serif;
+    cursor: pointer;
+  }
+  .btn:hover { border-color: var(--rust); color: var(--rust-deep); }
+
+  .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 14px; text-align: center; }
+  .result-box { background: var(--cream); border-radius: 10px; padding: 0.9rem 1rem; }
+  .grid3 .label { font-size: 12px; color: var(--ink-soft); margin: 0 0 3px; }
+  .grid3 .value { font-size: 18px; font-weight: 600; margin: 0; font-family: 'Noto Sans TC', 'Inter', sans-serif; }
+
+  .cost-table { table-layout: fixed; width: 100%; font-size: 13.5px; border-collapse: collapse; }
+  .cost-table input, .cost-table select { height: 38px; font-size: 13.5px; padding: 0 6px; }
+  .cost-table td { padding: 10px 6px; }
+  .cost-table td:first-child { padding-left: 0; }
+  .cost-table .mini { display: flex; gap: 4px; }
+  .cost-table .mini input { width: 56%; }
+  .cost-table .mini select { width: 44%; }
+  .btn-remove { border: none; background: none; color: var(--ink-soft); cursor: pointer; font-size: 14px; padding: 2px 4px; }
+  .btn-remove:hover { color: var(--rust); }
+  .slider-row { display: flex; align-items: center; gap: 12px; margin: 1.5rem 0; }
+  .slider-row span { font-size: 13px; color: var(--ink-soft); white-space: nowrap; }
+  .slider-row .val { font-weight: 600; color: var(--ink); min-width: 36px; text-align: right; }
+  input[type="range"] { height: auto; -webkit-appearance: none; background: transparent; }
+  input[type="range"]::-webkit-slider-runnable-track { height: 4px; background: var(--line); border-radius: 2px; }
+  input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--rust); margin-top: -6px; cursor: pointer; }
+  .stat { background: var(--cream); border-radius: 10px; padding: 1.1rem; text-align: center; }
+  .stat.accent { background: var(--bg-accent); }
+  .stat .label { font-size: 12px; color: var(--ink-soft); margin: 0 0 3px; }
+  .stat .value { font-size: 19px; font-weight: 600; margin: 0; font-family: 'Noto Sans TC', 'Inter', sans-serif; }
+  .stat.accent .value { color: var(--rust-deep); }
+  .note { font-size: 12.5px; color: var(--ink-soft); margin-top: 0.5rem; }
+  footer { text-align: center; font-size: 12px; color: var(--ink-soft); margin-top: 2.5rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <p class="eyebrow">自己的烘焙筆記</p>
+  <h1>烘焙小天地</h1>
+  <svg width="180" height="36" viewBox="0 0 180 36" style="margin-top:8px;" aria-hidden="true">
+    <g stroke="var(--ink-soft)" stroke-width="1.5" fill="none" stroke-linecap="round">
+      <line x1="26" y1="32" x2="26" y2="6"/>
+      <path d="M26 10 L20 4 M26 10 L32 4"/>
+      <path d="M26 16 L20 10 M26 16 L32 10"/>
+      <path d="M26 22 L20 16 M26 22 L32 16"/>
+    </g>
+    <g stroke="var(--ink-soft)" stroke-width="1.5" stroke-linecap="round">
+      <line x1="70" y1="18" x2="110" y2="18" stroke-width="6"/>
+      <line x1="60" y1="18" x2="70" y2="18"/>
+      <line x1="110" y1="18" x2="120" y2="18"/>
+      <circle cx="58" cy="18" r="2.5" fill="var(--ink-soft)" stroke="none"/>
+      <circle cx="122" cy="18" r="2.5" fill="var(--ink-soft)" stroke="none"/>
+    </g>
+    <g>
+      <path d="M152 8 C154 13 158 15 158 15 M152 8 C150 13 146 15 146 15" stroke="var(--rust)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+      <circle cx="146" cy="21" r="5.5" fill="var(--rust)"/>
+      <circle cx="158" cy="21" r="5.5" fill="var(--rust)"/>
+    </g>
+  </svg>
+</header>
+
+<nav>
+  <button class="nav-btn active" data-page="recipe">食譜查詢</button>
+  <button class="nav-btn" data-page="favorites">我的收藏</button>
+  <button class="nav-btn" data-page="convert">單位換算</button>
+  <button class="nav-btn" data-page="cost">成本計算</button>
+</nav>
+
+<main>
+
+  <section class="page active" id="page-recipe">
+    <div class="card">
+      <div class="card-head"><h2>查甜點</h2><span class="sub">輸入名稱搜尋</span></div>
+      <input id="searchInput" type="text" placeholder="例如：餅乾、提拉米蘇、戚風蛋糕" />
+      <div class="recipe-grid" id="recipeGrid"></div>
+      <p class="empty-msg" id="emptyMsg" style="display:none;">找不到符合的甜點，目前資料庫包含以下品項，可參考下方清單。</p>
+      <button class="btn" id="newRecipeBtn" style="margin-top:1rem;">+ 新增自己的食譜</button>
+    </div>
+
+    <div class="card" id="detailCard" style="display:none;">
+      <div class="detail-head">
+        <h3 id="detailName"></h3>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button class="fav-star-detail" id="favStarDetail" aria-label="收藏這個食譜">★</button>
+          <button class="btn" id="editRecipeBtn">編輯</button>
+          <button class="btn" id="addToCostBtn">帶入成本計算 →</button>
+        </div>
+      </div>
+      <p class="detail-meta" id="detailMeta"></p>
+
+      <div class="scale-row">
+        <label>份量倍數</label>
+        <input id="scaleMultiplier" type="number" min="0.5" step="0.5" value="1" />
+        <span class="note" id="scaleNote"></span>
+      </div>
+
+      <h4 class="section-title">器具</h4>
+      <ul class="equip-list" id="equipList"></ul>
+
+      <h4 class="section-title">材料</h4>
+      <table class="ingredient-table"><tbody id="ingredientBody"></tbody></table>
+
+      <h4 class="section-title">步驟</h4>
+      <ol class="steps" id="stepsList"></ol>
+
+      <div class="tip-box" id="tipBox"></div>
+    </div>
+
+    <div class="card" id="editCard" style="display:none;">
+      <div class="card-head"><h2 id="editTitle">新增食譜</h2></div>
+
+      <div class="row">
+        <div><label>食譜名稱</label><input id="editName" type="text" placeholder="例如：媽媽的草莓塔" /></div>
+        <div><label>份量 / 產出</label><input id="editYield" type="text" placeholder="例如：約20片" /></div>
+      </div>
+      <div class="row">
+        <div><label>烤溫</label><input id="editTemp" type="text" placeholder="例如：180°C 或 免烤" /></div>
+        <div><label>時間</label><input id="editTime" type="text" placeholder="例如：12-15分鐘" /></div>
+      </div>
+      <div style="margin-bottom:1rem;">
+        <label>器具（用逗號分隔）</label>
+        <input id="editEquipment" type="text" placeholder="例如：烤盤,打蛋器,刮刀" />
+      </div>
+
+      <label style="margin-bottom:6px;">材料</label>
+      <table class="cost-table" style="margin-bottom:8px;">
+        <colgroup><col style="width:46%"><col style="width:26%"><col style="width:20%"><col style="width:8%"></colgroup>
+        <tbody id="editIngredientRows"></tbody>
+      </table>
+      <button class="btn" id="editAddIngredientBtn" style="margin-bottom:1.25rem;">+ 新增材料</button>
+
+      <div style="margin-bottom:1rem;">
+        <label>步驟（每行一個步驟）</label>
+        <textarea id="editSteps" rows="6" style="width:100%;font-family:'Noto Sans TC','Inter',sans-serif;font-size:15px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--cream);color:var(--ink);"></textarea>
+      </div>
+      <div style="margin-bottom:1.25rem;">
+        <label>小提醒（選填）</label>
+        <input id="editTip" type="text" placeholder="例如：冷藏靜置後口感更好" />
+      </div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn" id="saveRecipeBtn">儲存食譜</button>
+        <button class="btn" id="cancelEditBtn">取消</button>
+        <button class="btn" id="deleteRecipeBtn" style="display:none;margin-left:auto;color:var(--rust-deep);">刪除這個食譜</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="page" id="page-favorites">
+    <div class="card">
+      <div class="card-head"><h2>我的收藏</h2><span class="sub">按星星收藏的食譜</span></div>
+      <div class="recipe-grid" id="favoritesGrid"></div>
+      <div id="favoritesEmptyMsg" style="display:none;text-align:center;padding:1rem 0;">
+        <svg width="72" height="54" viewBox="0 0 72 54" aria-hidden="true" style="margin-bottom:0.75rem;">
+          <line x1="8" y1="14" x2="64" y2="14" stroke="var(--line)" stroke-width="2" stroke-linecap="round"/>
+          <path d="M10 16 H62 L55 44 a5 5 0 01-5 4 H22 a5 5 0 01-5-4 Z" fill="none" stroke="var(--line)" stroke-width="2" stroke-linejoin="round"/>
+          <line x1="26" y1="6" x2="22" y2="14" stroke="var(--ink-soft)" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="36" y1="4" x2="36" y2="14" stroke="var(--ink-soft)" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="46" y1="6" x2="50" y2="14" stroke="var(--ink-soft)" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <p class="empty-msg" style="margin:0;">還沒有收藏的食譜，去「食譜查詢」按星星加入收藏吧～</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="page" id="page-convert">
+    <div class="card">
+      <div class="card-head"><h2>液體單位換算</h2><span class="sub">ml・g・茶匙湯匙</span></div>
+      <div class="row">
+        <div><label>數量</label><input id="amount" type="number" min="0" step="0.5" value="1" /></div>
+        <div>
+          <label>單位</label>
+          <select id="unit">
+            <option value="ml">毫升 (ml)</option>
+            <option value="g">克 (g)</option>
+            <option value="tsp">茶匙 (tsp)</option>
+            <option value="tbsp">湯匙 (tbsp)</option>
+          </select>
+        </div>
+        <div>
+          <label>液體種類</label>
+          <select id="liquidType">
+            <option value="1">水 / 牛奶 / 鮮奶油</option>
+            <option value="0.92">食用油</option>
+            <option value="1.42">蜂蜜</option>
+            <option value="1.03">醬油</option>
+          </select>
+        </div>
+      </div>
+      <div class="result-box">
+        <div class="grid3">
+          <div><p class="label">毫升</p><p class="value" id="outMl">5 ml</p></div>
+          <div><p class="label">克</p><p class="value" id="outG">5 g</p></div>
+          <div><p class="label">茶匙 / 湯匙</p><p class="value" id="outSpoon">1 tsp</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="page" id="page-cost">
+    <div class="card">
+      <div class="card-head"><h2>成本計算</h2><span class="sub">算出真實成本與建議售價</span></div>
+
+      <div class="row" style="align-items:flex-end;">
+        <div>
+          <label>從食譜帶入材料</label>
+          <select id="costRecipeSelect"></select>
+        </div>
+        <div style="flex:0 0 auto;">
+          <label>&nbsp;</label>
+          <button class="btn" id="applyRecipeBtn">套用此食譜 →</button>
+        </div>
+      </div>
+      <p class="note" style="margin:-0.25rem 0 1.75rem;">套用會清空目前材料列表，換成所選食譜的材料（份量倍數1）。</p>
+
+      <table class="cost-table">
+        <colgroup><col style="width:26%"><col style="width:24%"><col style="width:25%"><col style="width:18%"><col style="width:7%"></colgroup>
+        <tbody id="rows"></tbody>
+      </table>
+      <button class="btn" id="addRow" style="margin: 12px 0 1.75rem;">+ 新增材料</button>
+
+      <div class="row" style="margin-bottom:1.75rem;">
+        <div><label>其他成本（包裝/人工等，元）</label><input id="extraCost" type="number" min="0" step="1" value="0" /></div>
+        <div><label>這份配方做幾個 / 份</label><input id="yieldCount" type="number" min="1" step="1" value="10" /></div>
+      </div>
+
+      <div class="slider-row" style="margin: 1.75rem 0;">
+        <span>期望毛利率</span>
+        <input id="margin" type="range" min="0" max="80" value="40" step="5" style="flex:1;" />
+        <span class="val" id="marginOut">40%</span>
+      </div>
+
+      <div class="grid3" style="gap:16px;">
+        <div class="stat"><p class="label">總材料成本</p><p class="value" id="totalMaterial">0 元</p></div>
+        <div class="stat"><p class="label">每份成本</p><p class="value" id="perUnitCost">0 元</p></div>
+        <div class="stat accent"><p class="label">建議售價 / 份</p><p class="value" id="suggestedPrice">0 元</p></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>純前端計算，所有資料只留在這台裝置上。收藏的食譜會留存在這個瀏覽器裡，但成本計算與單位換算的輸入重新整理會清空。</footer>
+
+<script>
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchPage(btn.dataset.page));
+});
+function switchPage(page) {
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.page === page));
+  document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === 'page-' + page));
+}
+
+const recipes = [
+  { id:"cookie", name:"巧克力豆餅乾", keywords:["餅乾","cookie","chocolate chip"],
+    yield:"約20片", temp:"180°C", time:"11-13分鐘",
+    equipment:["烤盤","烘焙紙","電動打蛋器","刮刀","量秤"],
+    ingredients:[{name:"無鹽黃油（軟化）",amount:200,unit:"g"},{name:"細砂糖",amount:100,unit:"g"},{name:"黑糖",amount:100,unit:"g"},{name:"全蛋",amount:2,unit:"顆"},{name:"香草精",amount:5,unit:"ml"},{name:"低筋麵粉",amount:300,unit:"g"},{name:"小蘇打粉",amount:5,unit:"g"},{name:"鹽",amount:3,unit:"g"},{name:"巧克力豆",amount:200,unit:"g"}],
+    steps:["黃油加細砂糖、黑糖打發至顏色變淺、體積膨大。","分次加入蛋液，每次攪打均勻再加下一次。","加入香草精拌勻。","麵粉、小蘇打粉、鹽混合過篩後加入，拌至沒有乾粉。","加入巧克力豆拌勻。","用挖勺取約30克麵糊放上烤盤，間隔3公分。","180°C烤11-13分鐘，邊緣金黃中心微軟即可出爐。"],
+    tip:"麵糊冷藏30分鐘再烤，口感會更厚實不易攤平。" },
+
+  { id:"brownie", name:"脆皮布朗尼", keywords:["布朗尼","brownie","巧克力蛋糕","脆皮布朗尼"],
+    yield:"約8吋方形烤盤份量", temp:"150°C / 130°C（上下火）", time:"20-25分鐘",
+    equipment:["8吋方形烤盤","烘焙紙","隔水加熱鍋或微波爐","打蛋器","刮刀","篩網"],
+    ingredients:[{name:"無鹽奶油（切塊）",amount:210,unit:"g"},{name:"黑巧克力（75%以上，塊狀、豆）",amount:130,unit:"g"},{name:"全蛋（約4顆）",amount:200,unit:"g"},{name:"紅糖（可替換成砂糖）",amount:60,unit:"g"},{name:"砂糖",amount:65,unit:"g"},{name:"低筋麵粉（須過篩）",amount:50,unit:"g"},{name:"可可粉（須過篩）",amount:20,unit:"g"},{name:"核桃（可加可不加）",amount:0,unit:"適量"},{name:"蘭姆酒（可加可不加）",amount:0,unit:"適量"}],
+    steps:["無鹽奶油與黑巧克力隔水加熱或微波融化後混合均勻，放涼備用。","全蛋加紅糖、砂糖打至略發（顏色稍微變白）。","將融化的巧克力奶油液倒入蛋糖糊中拌勻。","篩入低筋麵粉拌勻。","篩入可可粉拌勻。","加入核桃（可選）拌勻，喜歡可加適量蘭姆酒提香。","倒入鋪好烘焙紙的烤盤，上下火150°C／130°C，烤20-25分鐘。","出爐放涼後切塊。"],
+    tip:"已改用75%以上黑巧克力並調降糖量約25%，甜度更低、苦甜味更明顯；上下火不同溫設定是脆皮關鍵。" },
+
+  { id:"cheesecake", name:"重乳酪蛋糕", keywords:["乳酪蛋糕","cheesecake","起司蛋糕"],
+    yield:"6吋圓形蛋糕", temp:"160°C（水浴法）", time:"50-60分鐘",
+    equipment:["6吋活底圓模","烤盤（水浴用）","電動打蛋器","刮刀","鋁箔紙"],
+    ingredients:[{name:"奶油乳酪（室溫）",amount:400,unit:"g"},{name:"細砂糖",amount:100,unit:"g"},{name:"全蛋",amount:2,unit:"顆"},{name:"酸奶",amount:100,unit:"g"},{name:"玉米粉",amount:15,unit:"g"},{name:"檸檬汁",amount:10,unit:"ml"},{name:"消化餅底（壓碎）",amount:100,unit:"g"},{name:"融化黃油",amount:40,unit:"g"}],
+    steps:["消化餅碎加融化黃油拌勻，壓入模具底部，冷藏定型。","奶油乳酪打軟，加糖打至光滑無顆粒。","分次加入蛋液拌勻，再加酸奶、玉米粉、檸檬汁拌勻。","倒入模具，模具外包鋁箔紙防止滲水。","放入裝水的烤盤中，160°C水浴烤50-60分鐘，表面微凝固但中心仍有點晃動。","關火留在烤箱內回溫30分鐘，再冷藏至少4小時定型。"],
+    tip:"水浴法能避免表面裂開，是重乳酪蛋糕成功的關鍵。" },
+
+  { id:"tiramisu", name:"提拉米蘇", keywords:["提拉米蘇","tiramisu","免烤"],
+    yield:"6人份", temp:"免烤", time:"冷藏至少4小時",
+    equipment:["打蛋器","深盤（沾咖啡用）","方形容器或玻璃杯","篩網"],
+    ingredients:[{name:"蛋黃",amount:3,unit:"顆"},{name:"細砂糖",amount:60,unit:"g"},{name:"馬斯卡彭乳酪",amount:250,unit:"g"},{name:"濃咖啡",amount:150,unit:"ml"},{name:"手指餅",amount:200,unit:"g"},{name:"可可粉",amount:0,unit:"適量"}],
+    steps:["蛋黃加糖隔水加熱打至濃稠泛白（或視個人喜好直接打發）。","加入馬斯卡彭乳酪輕輕拌勻成光滑乳酪餡。","手指餅快速沾過咖啡（單面1-2秒，避免泡爛），鋪一層於容器底部。","鋪一層乳酪餡，重複鋪餅與餡至滿。","冷藏至少4小時，食用前篩上可可粉。"],
+    tip:"使用生蛋黃版本建議選用新鮮優質蛋，或改用加熱版作法較安心。" },
+
+  { id:"muffin", name:"藍莓馬芬", keywords:["馬芬","muffin","杯子蛋糕"],
+    yield:"12個標準馬芬", temp:"190°C", time:"18-20分鐘",
+    equipment:["馬芬烤模","紙杯","打蛋器","刮刀"],
+    ingredients:[{name:"低筋麵粉",amount:280,unit:"g"},{name:"泡打粉",amount:10,unit:"g"},{name:"鹽",amount:3,unit:"g"},{name:"細砂糖",amount:150,unit:"g"},{name:"全蛋",amount:2,unit:"顆"},{name:"牛奶",amount:240,unit:"ml"},{name:"融化黃油",amount:120,unit:"g"},{name:"藍莓",amount:150,unit:"g"}],
+    steps:["麵粉、泡打粉、鹽混合過篩。","蛋、糖、牛奶、融化黃油攪打均勻。","將濕料倒入乾料中，輕拌幾下至剛好混合，不要過度攪拌。","加入藍莓輕輕拌入。","麵糊分裝入紙杯約八分滿。","190°C烤18-20分鐘，表面金黃、竹籤插入不沾即可。"],
+    tip:"麵糊有點顆粒粗糙是正常的，過度攪拌會讓馬芬變硬。" },
+
+  { id:"scone", name:"原味司康", keywords:["司康","scone"],
+    yield:"約8個", temp:"200°C", time:"14-16分鐘",
+    equipment:["烤盤","烘焙紙","刮板","圓形切模"],
+    ingredients:[{name:"低筋麵粉",amount:300,unit:"g"},{name:"泡打粉",amount:15,unit:"g"},{name:"鹽",amount:3,unit:"g"},{name:"細砂糖",amount:50,unit:"g"},{name:"冷黃油（切塊）",amount:100,unit:"g"},{name:"鮮奶油或牛奶",amount:150,unit:"ml"},{name:"全蛋",amount:1,unit:"顆"}],
+    steps:["麵粉、泡打粉、鹽、糖混合。","加入冷黃油塊，用手指快速搓成粗砂粒狀（避免黃油融化）。","加入打散的蛋與鮮奶油，輕輕混合成團，不要過度揉。","整型成約2公分厚，用切模壓出圓形。","放上烤盤，表面可刷一層牛奶或蛋液。","200°C烤14-16分鐘至表面金黃。"],
+    tip:"麵團與器具盡量保持冰涼，口感才會酥鬆分層。" },
+
+  { id:"poundcake", name:"香草磅蛋糕", keywords:["磅蛋糕","pound cake"],
+    yield:"1個長條蛋糕", temp:"165°C", time:"50-60分鐘",
+    equipment:["長條蛋糕模","電動打蛋器","刮刀"],
+    ingredients:[{name:"無鹽黃油（室溫）",amount:200,unit:"g"},{name:"細砂糖",amount:200,unit:"g"},{name:"全蛋",amount:4,unit:"顆"},{name:"低筋麵粉",amount:200,unit:"g"},{name:"泡打粉",amount:4,unit:"g"},{name:"香草精",amount:5,unit:"ml"}],
+    steps:["黃油打發至顏色變淺、體積膨鬆。","加入糖繼續打發至蓬鬆狀態。","分次加入蛋液，每次都打勻再加下一顆，避免油水分離。","篩入麵粉與泡打粉，輕拌至無乾粉，加入香草精。","倒入模具，輕敲出空氣，中央用刮刀劃一刀幫助膨脹均勻。","165°C烤50-60分鐘，竹籤插入不沾即可。"],
+    tip:"所有材料回溫至室溫再操作，蛋糕才不容易油水分離。" },
+
+  { id:"chiffon", name:"戚風蛋糕", keywords:["戚風蛋糕","chiffon","海綿蛋糕"],
+    yield:"6吋圓形蛋糕（中空模）", temp:"160°C", time:"35-40分鐘",
+    equipment:["6吋中空戚風模","電動打蛋器","刮刀","兩個攪拌盆"],
+    ingredients:[{name:"蛋黃",amount:4,unit:"顆"},{name:"細砂糖（蛋黃用）",amount:20,unit:"g"},{name:"沙拉油",amount:50,unit:"ml"},{name:"牛奶",amount:60,unit:"ml"},{name:"低筋麵粉",amount:80,unit:"g"},{name:"蛋白",amount:4,unit:"顆"},{name:"細砂糖（蛋白用）",amount:60,unit:"g"},{name:"檸檬汁",amount:0,unit:"少許"}],
+    steps:["蛋黃加糖打勻，加入沙拉油、牛奶拌勻。","篩入麵粉，輕拌至無顆粒成蛋黃麵糊。","蛋白加檸檬汁，分次加糖打至硬性發泡（拉起呈直立尖角）。","取三分之一蛋白霜與蛋黃麵糊拌勻，再倒回剩餘蛋白霜中，切拌方式輕柔拌勻避免消泡。","倒入模具，輕震出大氣泡。","160°C烤35-40分鐘，出爐立刻倒扣放涼，完全冷卻才脫模。"],
+    tip:"蛋白打發狀態與切拌手法是戚風成功與否的關鍵，動作要輕但確實。" },
+
+  { id:"mousse", name:"巧克力慕斯", keywords:["慕斯","mousse","免烤"],
+    yield:"4人份", temp:"免烤", time:"冷藏至少3小時",
+    equipment:["打蛋器","隔水加熱鍋","攪拌盆","玻璃杯"],
+    ingredients:[{name:"黑巧克力",amount:150,unit:"g"},{name:"動物性鮮奶油",amount:200,unit:"ml"},{name:"全蛋",amount:2,unit:"顆"},{name:"細砂糖",amount:30,unit:"g"}],
+    steps:["巧克力隔水加熱融化，放涼至微溫。","蛋黃加一半糖打至濃稠泛白，拌入融化巧克力。","蛋白加剩餘糖打至硬性發泡。","鮮奶油打至六分發（有紋路但仍流動）。","將蛋白霜與打發鮮奶油分次輕柔拌入巧克力蛋黃糊中。","倒入杯中冷藏至少3小時定型。"],
+    tip:"全程動作要輕柔，保留打發的空氣感慕斯才會綿密。" },
+
+  { id:"cremebrulee", name:"烤布蕾", keywords:["烤布蕾","creme brulee","焦糖布蕾"],
+    yield:"4個烤盅", temp:"150°C（水浴法）", time:"35-40分鐘",
+    equipment:["烤盅4個","噴槍（可選）","烤盤（水浴用）","篩網"],
+    ingredients:[{name:"動物性鮮奶油",amount:400,unit:"ml"},{name:"香草精",amount:0,unit:"適量"},{name:"蛋黃",amount:5,unit:"顆"},{name:"細砂糖（布丁用）",amount:60,unit:"g"},{name:"細砂糖（表面焦糖用）",amount:0,unit:"適量"}],
+    steps:["鮮奶油加香草小火加熱至微滾邊冒泡即離火，放涼一下。","蛋黃加糖攪勻（不要打出泡泡）。","將溫熱鮮奶油緩緩沖入蛋黃糖液，邊攪邊倒避免結塊。","過篩後倒入烤盅。","烤盅放入裝水的烤盤，150°C水浴烤35-40分鐘至中心微晃動但邊緣已凝固。","冷藏至少2小時，食用前撒糖用噴槍炙燒成脆殼。"],
+    tip:"沒有噴槍可用烤箱上火短時間炙烤，但效果不如噴槍均勻。" },
+
+  { id:"pannacotta", name:"義式奶酪", keywords:["奶酪","panna cotta"],
+    yield:"4個布丁杯", temp:"免烤", time:"冷藏至少4小時",
+    equipment:["小鍋","攪拌盆","布丁杯","篩網"],
+    ingredients:[{name:"動物性鮮奶油",amount:300,unit:"ml"},{name:"牛奶",amount:200,unit:"ml"},{name:"細砂糖",amount:50,unit:"g"},{name:"吉利丁片",amount:8,unit:"g"},{name:"香草精",amount:0,unit:"適量"}],
+    steps:["吉利丁片用冷水泡軟備用。","鮮奶油、牛奶、糖小火加熱至糖融化，不要煮滾。","離火後加入泡軟瀝乾的吉利丁片攪拌至完全融化。","加入香草精，過篩後倒入杯中。","冷藏至少4小時至完全凝固。"],
+    tip:"喜歡軟嫩口感可減少吉利丁用量，但脫模需要足夠的凝固力。" },
+
+  { id:"bananabread", name:"香蕉蛋糕", keywords:["香蕉蛋糕","banana bread"],
+    yield:"1個長條蛋糕", temp:"175°C", time:"50-55分鐘",
+    equipment:["長條蛋糕模","攪拌盆","叉子","刮刀"],
+    ingredients:[{name:"熟透香蕉（去皮）",amount:300,unit:"g"},{name:"無鹽黃油（融化）",amount:100,unit:"g"},{name:"細砂糖",amount:120,unit:"g"},{name:"全蛋",amount:2,unit:"顆"},{name:"低筋麵粉",amount:250,unit:"g"},{name:"小蘇打粉",amount:5,unit:"g"},{name:"鹽",amount:2,unit:"g"}],
+    steps:["香蕉用叉子壓成泥。","加入融化黃油、糖、蛋拌勻。","篩入麵粉、小蘇打粉、鹽，輕拌至無乾粉即可，不要過度攪拌。","倒入模具，175°C烤50-55分鐘，竹籤插入不沾即可。"],
+    tip:"香蕉越熟（表皮帶黑斑）甜度與香氣越足，是降低用糖量的好方法。" },
+
+  { id:"pancake", name:"鬆餅", keywords:["鬆餅","pancake"],
+    yield:"約8片（直徑10cm）", temp:"平底鍋中火", time:"每片約2-3分鐘",
+    equipment:["平底鍋","打蛋器","刮刀","量杯"],
+    ingredients:[{name:"低筋麵粉",amount:250,unit:"g"},{name:"泡打粉",amount:10,unit:"g"},{name:"鹽",amount:2,unit:"g"},{name:"細砂糖",amount:30,unit:"g"},{name:"全蛋",amount:2,unit:"顆"},{name:"牛奶",amount:250,unit:"ml"},{name:"融化黃油",amount:30,unit:"g"}],
+    steps:["麵粉、泡打粉、鹽、糖混合過篩。","蛋、牛奶、融化黃油攪打均勻。","將濕料倒入乾料中，輕拌至剛好混合，有些顆粒沒關係。","平底鍋小火預熱，刷一層薄油，倒入約60ml麵糊。","表面出現氣泡且邊緣定型時翻面，煎至兩面金黃即可。"],
+    tip:"麵糊靜置10分鐘讓筋性鬆弛，煎出來會更鬆軟。" }
+];
+
+/* ---------------- 自訂食譜 / 編輯覆寫 儲存 ---------------- */
+const CUSTOM_KEY = 'bakingCustomRecipes';
+const OVERRIDE_KEY = 'bakingOverrides';
+
+function getCustomRecipes() {
+  try {
+    const raw = localStorage.getItem(CUSTOM_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) { return []; }
+}
+function saveCustomRecipes(list) {
+  try { localStorage.setItem(CUSTOM_KEY, JSON.stringify(list)); } catch (e) {}
+}
+function getOverrides() {
+  try {
+    const raw = localStorage.getItem(OVERRIDE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) { return {}; }
+}
+function saveOverrides(obj) {
+  try { localStorage.setItem(OVERRIDE_KEY, JSON.stringify(obj)); } catch (e) {}
+}
+function isCustomId(id) { return typeof id === 'string' && id.indexOf('custom-') === 0; }
+
+/* 取得目前完整食譜清單：內建食譜套用編輯覆寫，再加上使用者自訂的食譜 */
+function getAllRecipes() {
+  const overrides = getOverrides();
+  const builtIn = recipes.map(r => overrides[r.id] ? Object.assign({}, r, overrides[r.id]) : r);
+  return builtIn.concat(getCustomRecipes());
+}
+function findRecipeById(id) {
+  return getAllRecipes().find(r => r.id === id) || null;
+}
+
+let activeRecipe = null;
+
+const FAV_KEY = 'bakingFavorites';
+function getFavorites() {
+  try {
+    const raw = localStorage.getItem(FAV_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+function isFavorite(id) {
+  return getFavorites().includes(id);
+}
+function toggleFavorite(id) {
+  const favs = getFavorites();
+  const idx = favs.indexOf(id);
+  if (idx >= 0) { favs.splice(idx, 1); } else { favs.push(id); }
+  try { localStorage.setItem(FAV_KEY, JSON.stringify(favs)); } catch (e) {}
+  renderRecipeGrid(currentFilteredList());
+  renderFavoritesGrid();
+  if (activeRecipe && activeRecipe.id === id) {
+    document.getElementById('favStarDetail').classList.toggle('active', isFavorite(id));
+  }
+}
+let lastFilter = null;
+function currentFilteredList() {
+  return lastFilter !== null ? lastFilter : getAllRecipes();
+}
+
+function renderRecipeGrid(filtered) {
+  lastFilter = filtered;
+  const grid = document.getElementById('recipeGrid');
+  const emptyMsg = document.getElementById('emptyMsg');
+  grid.innerHTML = '';
+  const all = getAllRecipes();
+  const list = filtered.length ? filtered : all;
+  emptyMsg.style.display = filtered.length === 0 && document.getElementById('searchInput').value.trim() !== '' ? 'block' : 'none';
+  list.forEach(r => {
+    const chip = document.createElement('div');
+    chip.className = 'recipe-chip';
+    chip.setAttribute('role', 'button');
+    chip.setAttribute('tabindex', '0');
+    chip.innerHTML = `${r.name}<span class="meta">${r.yield}</span><button class="fav-star ${isFavorite(r.id) ? 'active' : ''}" aria-label="收藏${r.name}">★</button>`;
+    chip.addEventListener('click', () => showDetail(r));
+    chip.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showDetail(r); } });
+    chip.querySelector('.fav-star').addEventListener('click', (e) => { e.stopPropagation(); toggleFavorite(r.id); });
+    grid.appendChild(chip);
+  });
+}
+
+function renderFavoritesGrid() {
+  const grid = document.getElementById('favoritesGrid');
+  const emptyMsg = document.getElementById('favoritesEmptyMsg');
+  grid.innerHTML = '';
+  const favIds = getFavorites();
+  const favRecipes = getAllRecipes().filter(r => favIds.includes(r.id));
+  emptyMsg.style.display = favRecipes.length === 0 ? 'block' : 'none';
+  favRecipes.forEach(r => {
+    const chip = document.createElement('div');
+    chip.className = 'recipe-chip';
+    chip.setAttribute('role', 'button');
+    chip.setAttribute('tabindex', '0');
+    chip.innerHTML = `${r.name}<span class="meta">${r.yield}</span><button class="fav-star active" aria-label="移除收藏${r.name}">★</button>`;
+    chip.addEventListener('click', () => { switchPage('recipe'); showDetail(r); });
+    chip.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); switchPage('recipe'); showDetail(r); } });
+    chip.querySelector('.fav-star').addEventListener('click', (e) => { e.stopPropagation(); toggleFavorite(r.id); });
+    grid.appendChild(chip);
+  });
+}
+
+function searchRecipes() {
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  const all = getAllRecipes();
+  if (!q) { renderRecipeGrid(all); return; }
+  const filtered = all.filter(r =>
+    r.name.toLowerCase().includes(q) || (r.keywords || []).some(k => k.toLowerCase().includes(q))
+  );
+  renderRecipeGrid(filtered);
+}
+
+function showDetail(recipe) {
+  activeRecipe = recipe;
+  document.getElementById('editCard').style.display = 'none';
+  document.getElementById('detailCard').style.display = 'block';
+  document.getElementById('detailName').textContent = recipe.name;
+  document.getElementById('detailMeta').textContent = `份量：${recipe.yield} ・ 溫度：${recipe.temp} ・ 時間：${recipe.time}`;
+  const equipList = document.getElementById('equipList');
+  equipList.innerHTML = recipe.equipment.map(e => `<li><span class="equip-checkbox"></span><span class="equip-name">${e}</span></li>`).join('');
+  equipList.querySelectorAll('li').forEach(li => li.addEventListener('click', () => li.classList.toggle('checked')));
+  document.getElementById('stepsList').innerHTML = recipe.steps.map(s => `<li>${s}</li>`).join('');
+  document.getElementById('tipBox').textContent = recipe.tip || '';
+  document.getElementById('scaleMultiplier').value = 1;
+  document.getElementById('favStarDetail').classList.toggle('active', isFavorite(recipe.id));
+  renderIngredients();
+  document.getElementById('detailCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderIngredients() {
+  if (!activeRecipe) return;
+  const multiplier = parseFloat(document.getElementById('scaleMultiplier').value) || 1;
+  const body = document.getElementById('ingredientBody');
+  body.innerHTML = '';
+  let hasCount = false;
+  activeRecipe.ingredients.forEach(ing => {
+    let display;
+    if (ing.unit === '適量' || ing.unit === '少許') {
+      display = ing.unit;
+    } else {
+      const scaled = ing.amount * multiplier;
+      if (ing.unit === '顆') { hasCount = true; }
+      const rounded = ing.unit === 'g' || ing.unit === 'ml' ? Math.round(scaled) : Math.round(scaled * 2) / 2;
+      display = rounded.toLocaleString() + ' ' + ing.unit;
+    }
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td style="width:28px;"><span class="ing-checkbox"></span></td><td class="ing-name">${ing.name}</td><td class="ing-amount">${display}</td>`;
+    tr.addEventListener('click', () => tr.classList.toggle('checked'));
+    body.appendChild(tr);
+  });
+  document.getElementById('scaleNote').textContent = hasCount ? '蛋等計數材料已自動換算，數量不整時請自行四捨五入' : '';
+}
+
+document.getElementById('searchInput').addEventListener('input', searchRecipes);
+document.getElementById('scaleMultiplier').addEventListener('input', renderIngredients);
+document.getElementById('favStarDetail').addEventListener('click', () => {
+  if (!activeRecipe) return;
+  toggleFavorite(activeRecipe.id);
+});
+document.getElementById('addToCostBtn').addEventListener('click', () => {
+  if (!activeRecipe) return;
+  const multiplier = parseFloat(document.getElementById('scaleMultiplier').value) || 1;
+  document.getElementById('rows').innerHTML = '';
+  activeRecipe.ingredients.forEach(ing => {
+    if (ing.unit === '適量' || ing.unit === '少許') return;
+    const scaled = ing.unit === 'g' || ing.unit === 'ml' ? Math.round(ing.amount * multiplier) : Math.round(ing.amount * multiplier * 2) / 2;
+    const unit = ing.unit === '顆' ? '顆/個' : ing.unit;
+    createCostRow(ing.name, scaled, unit, 0, 100, unit);
+  });
+  renderCost();
+  switchPage('cost');
+});
+
+/* ---------------- 新增 / 編輯食譜 ---------------- */
+let editingRecipeId = null; // null = 新增；有值 = 編輯該 id
+
+const editIngredientUnits = ['g', 'ml', '顆', '適量', '少許'];
+function createEditIngredientRow(name, amount, unit) {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input type="text" value="${name || ''}" class="editIngName" placeholder="材料名稱" /></td>
+    <td><input type="number" value="${amount || 0}" min="0" step="1" class="editIngAmount" /></td>
+    <td><select class="editIngUnit">${editIngredientUnits.map(u => `<option value="${u}" ${u === unit ? 'selected' : ''}>${u}</option>`).join('')}</select></td>
+    <td style="text-align:right;"><button class="btn-remove" aria-label="刪除材料">✕</button></td>
+  `;
+  document.getElementById('editIngredientRows').appendChild(tr);
+  tr.querySelector('.btn-remove').addEventListener('click', () => tr.remove());
+}
+
+function openEditor(recipe) {
+  document.getElementById('detailCard').style.display = 'none';
+  document.getElementById('editCard').style.display = 'block';
+  document.getElementById('editIngredientRows').innerHTML = '';
+  document.getElementById('deleteRecipeBtn').style.display = 'none';
+
+  if (recipe) {
+    editingRecipeId = recipe.id;
+    document.getElementById('editTitle').textContent = '編輯食譜';
+    document.getElementById('editName').value = recipe.name;
+    document.getElementById('editYield').value = recipe.yield;
+    document.getElementById('editTemp').value = recipe.temp;
+    document.getElementById('editTime').value = recipe.time;
+    document.getElementById('editEquipment').value = recipe.equipment.join(',');
+    recipe.ingredients.forEach(ing => createEditIngredientRow(ing.name, ing.amount, ing.unit));
+    document.getElementById('editSteps').value = recipe.steps.join('\n');
+    document.getElementById('editTip').value = recipe.tip || '';
+    if (isCustomId(recipe.id)) {
+      document.getElementById('deleteRecipeBtn').style.display = 'inline-block';
+    }
+  } else {
+    editingRecipeId = null;
+    document.getElementById('editTitle').textContent = '新增食譜';
+    document.getElementById('editName').value = '';
+    document.getElementById('editYield').value = '';
+    document.getElementById('editTemp').value = '';
+    document.getElementById('editTime').value = '';
+    document.getElementById('editEquipment').value = '';
+    createEditIngredientRow('', 0, 'g');
+    document.getElementById('editSteps').value = '';
+    document.getElementById('editTip').value = '';
+  }
+  document.getElementById('editCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+document.getElementById('newRecipeBtn').addEventListener('click', () => openEditor(null));
+document.getElementById('editRecipeBtn').addEventListener('click', () => {
+  if (activeRecipe) openEditor(activeRecipe);
+});
+document.getElementById('editAddIngredientBtn').addEventListener('click', () => createEditIngredientRow('', 0, 'g'));
+document.getElementById('cancelEditBtn').addEventListener('click', () => {
+  document.getElementById('editCard').style.display = 'none';
+  if (activeRecipe) document.getElementById('detailCard').style.display = 'block';
+});
+
+document.getElementById('saveRecipeBtn').addEventListener('click', () => {
+  const name = document.getElementById('editName').value.trim();
+  if (!name) { alert('請輸入食譜名稱'); return; }
+
+  const ingredients = [];
+  document.querySelectorAll('#editIngredientRows tr').forEach(tr => {
+    const ingName = tr.querySelector('.editIngName').value.trim();
+    if (!ingName) return;
+    const unit = tr.querySelector('.editIngUnit').value;
+    const amount = parseFloat(tr.querySelector('.editIngAmount').value) || 0;
+    ingredients.push({ name: ingName, amount, unit });
+  });
+
+  const steps = document.getElementById('editSteps').value.split('\n').map(s => s.trim()).filter(Boolean);
+  const equipment = document.getElementById('editEquipment').value.split(',').map(s => s.trim()).filter(Boolean);
+
+  const recipeData = {
+    name,
+    keywords: [name],
+    yield: document.getElementById('editYield').value.trim() || '依個人份量',
+    temp: document.getElementById('editTemp').value.trim() || '依個人作法',
+    time: document.getElementById('editTime').value.trim() || '依個人作法',
+    equipment,
+    ingredients,
+    steps,
+    tip: document.getElementById('editTip').value.trim()
+  };
+
+  if (editingRecipeId && isCustomId(editingRecipeId)) {
+    // 編輯自訂食譜
+    const customList = getCustomRecipes();
+    const idx = customList.findIndex(r => r.id === editingRecipeId);
+    if (idx >= 0) customList[idx] = Object.assign({ id: editingRecipeId }, recipeData);
+    saveCustomRecipes(customList);
+  } else if (editingRecipeId) {
+    // 編輯內建食譜 → 存成覆寫
+    const overrides = getOverrides();
+    overrides[editingRecipeId] = recipeData;
+    saveOverrides(overrides);
+  } else {
+    // 新增食譜
+    const newId = 'custom-' + Date.now();
+    const customList = getCustomRecipes();
+    customList.push(Object.assign({ id: newId }, recipeData));
+    saveCustomRecipes(customList);
+    const favs = getFavorites();
+    favs.push(newId);
+    try { localStorage.setItem(FAV_KEY, JSON.stringify(favs)); } catch (e) {}
+    editingRecipeId = newId;
+  }
+
+  document.getElementById('editCard').style.display = 'none';
+  refreshCostRecipeSelect();
+  renderRecipeGrid(getAllRecipes());
+  renderFavoritesGrid();
+  searchRecipes();
+  const saved = findRecipeById(editingRecipeId);
+  if (saved) showDetail(saved);
+});
+
+document.getElementById('deleteRecipeBtn').addEventListener('click', () => {
+  if (!editingRecipeId || !isCustomId(editingRecipeId)) return;
+  if (!confirm('確定要刪除這個食譜嗎？')) return;
+  const customList = getCustomRecipes().filter(r => r.id !== editingRecipeId);
+  saveCustomRecipes(customList);
+  const favs = getFavorites().filter(id => id !== editingRecipeId);
+  try { localStorage.setItem(FAV_KEY, JSON.stringify(favs)); } catch (e) {}
+  document.getElementById('editCard').style.display = 'none';
+  document.getElementById('detailCard').style.display = 'none';
+  activeRecipe = null;
+  refreshCostRecipeSelect();
+  renderRecipeGrid(getAllRecipes());
+  renderFavoritesGrid();
+  searchRecipes();
+});
+
+renderRecipeGrid(getAllRecipes());
+renderFavoritesGrid();
+
+function toMl(amount, unit) {
+  const table = { ml: 1, tsp: 4.93, tbsp: 14.79 };
+  return amount * table[unit];
+}
+function renderLiquid() {
+  const amount = parseFloat(document.getElementById('amount').value) || 0;
+  const unit = document.getElementById('unit').value;
+  const density = parseFloat(document.getElementById('liquidType').value);
+  const ml = unit === 'g' ? amount / density : toMl(amount, unit);
+  const grams = Math.round(ml * density * 10) / 10;
+  const mlRounded = Math.round(ml * 10) / 10;
+  const tsp = Math.round((ml / 4.93) * 10) / 10;
+  const tbsp = Math.round((ml / 14.79) * 10) / 10;
+  document.getElementById('outMl').textContent = mlRounded.toLocaleString() + ' ml';
+  document.getElementById('outG').textContent = grams.toLocaleString() + ' g';
+  document.getElementById('outSpoon').textContent = tbsp >= 1 ? tbsp.toLocaleString() + ' tbsp' : tsp.toLocaleString() + ' tsp';
+}
+document.getElementById('amount').addEventListener('input', renderLiquid);
+document.getElementById('unit').addEventListener('change', renderLiquid);
+document.getElementById('liquidType').addEventListener('change', renderLiquid);
+renderLiquid();
+
+const unitOptions = ['g','ml','顆/個'];
+function createCostRow(name, amount, unit, price, purchaseAmount, purchaseUnit) {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input type="text" value="${name}" class="rowName" /></td>
+    <td><div class="mini"><input type="number" value="${amount}" min="0" step="1" class="rowAmount" /><select class="rowUnit">${unitOptions.map(u => `<option value="${u}" ${u===unit?'selected':''}>${u}</option>`).join('')}</select></div></td>
+    <td><input type="number" value="${price}" min="0" step="1" class="rowPrice" /></td>
+    <td><div class="mini"><input type="number" value="${purchaseAmount}" min="0.01" step="1" class="rowPurchaseAmount" /><select class="rowPurchaseUnit">${unitOptions.map(u => `<option value="${u}" ${u===purchaseUnit?'selected':''}>${u}</option>`).join('')}</select></div></td>
+    <td style="text-align:right;"><button class="btn-remove" aria-label="刪除材料">✕</button></td>
+  `;
+  document.getElementById('rows').appendChild(tr);
+  tr.querySelectorAll('input,select').forEach(el => el.addEventListener('input', renderCost));
+  tr.querySelector('.btn-remove').addEventListener('click', () => { tr.remove(); renderCost(); });
+}
+function renderCost() {
+  let totalMaterial = 0;
+  document.querySelectorAll('#rows tr').forEach(tr => {
+    const amount = parseFloat(tr.querySelector('.rowAmount').value) || 0;
+    const price = parseFloat(tr.querySelector('.rowPrice').value) || 0;
+    const purchaseAmount = parseFloat(tr.querySelector('.rowPurchaseAmount').value) || 1;
+    totalMaterial += amount * (price / purchaseAmount);
+  });
+  const extra = parseFloat(document.getElementById('extraCost').value) || 0;
+  const yieldCount = parseFloat(document.getElementById('yieldCount').value) || 1;
+  const margin = parseFloat(document.getElementById('margin').value);
+  const total = totalMaterial + extra;
+  const perUnit = total / yieldCount;
+  const suggested = perUnit / (1 - margin / 100);
+  document.getElementById('marginOut').textContent = margin + '%';
+  document.getElementById('totalMaterial').textContent = Math.round(totalMaterial).toLocaleString() + ' 元';
+  document.getElementById('perUnitCost').textContent = (Math.round(perUnit * 10) / 10).toLocaleString() + ' 元';
+  document.getElementById('suggestedPrice').textContent = (Math.round(suggested * 10) / 10).toLocaleString() + ' 元';
+}
+document.getElementById('addRow').addEventListener('click', () => createCostRow('', 0, 'g', 0, 100, 'g'));
+document.getElementById('extraCost').addEventListener('input', renderCost);
+document.getElementById('yieldCount').addEventListener('input', renderCost);
+document.getElementById('margin').addEventListener('input', renderCost);
+createCostRow('麵粉', 300, 'g', 75, 1000, 'g');
+createCostRow('黃油', 200, 'g', 180, 200, 'g');
+createCostRow('糖', 100, 'g', 35, 1000, 'g');
+renderCost();
+
+const costRecipeSelect = document.getElementById('costRecipeSelect');
+function refreshCostRecipeSelect() {
+  const prevValue = costRecipeSelect.value;
+  costRecipeSelect.innerHTML = getAllRecipes().map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+  if (prevValue) costRecipeSelect.value = prevValue;
+}
+refreshCostRecipeSelect();
+document.getElementById('applyRecipeBtn').addEventListener('click', () => {
+  const recipe = findRecipeById(costRecipeSelect.value);
+  if (!recipe) return;
+  document.getElementById('rows').innerHTML = '';
+  recipe.ingredients.forEach(ing => {
+    if (ing.unit === '適量' || ing.unit === '少許') return;
+    const unit = ing.unit === '顆' ? '顆/個' : ing.unit;
+    createCostRow(ing.name, ing.amount, unit, 0, 100, unit);
+  });
+  renderCost();
+});
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js');
+  });
+}
+</script>
+
+</body>
+</html>
