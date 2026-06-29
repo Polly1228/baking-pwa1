@@ -1,6 +1,6 @@
 {
-  "name": "烘焙小天地",
-  "short_name": "烘焙小天地",
+  "name": "Baking Studio",
+  "short_name": "Baking Studio",
   "description": "食譜查詢、單位換算、成本計算的烘焙工具",
   "start_url": "./index.html",
   "display": "standalone",
