@@ -12,7 +12,6 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700&family=Noto+Sans+TC:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
   :root {
     --cream: #FAF5EC;
@@ -210,9 +209,14 @@
     cursor: pointer;
     color: var(--ink);
     position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
   .recipe-chip:hover { border-color: var(--rust); color: var(--rust-deep); }
   .recipe-chip .meta { display: block; font-size: 12px; font-weight: 400; color: var(--ink-soft); margin-top: 2px; }
+  .recipe-chip-icon { flex: none; width: 36px; height: 36px; border-radius: 9px; background: var(--paper); display: flex; align-items: center; justify-content: center; }
+  .recipe-chip-body { flex: 1; min-width: 0; padding-right: 22px; }
   .empty-msg { font-size: 14px; color: var(--ink-soft); margin-top: 0.75rem; }
   .fav-star {
     position: absolute;
@@ -240,6 +244,7 @@
 
   .detail-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 0.5rem; }
   .detail-head h3 { font-family: 'Noto Sans TC', 'Inter', sans-serif; font-size: 23px; font-weight: 700; margin: 0; }
+  .detail-name-star { color: var(--rust); font-size: 0.7em; vertical-align: middle; margin: 0 8px; }
   .detail-meta { font-size: 13.5px; color: var(--ink-soft); margin: 0 0 1.25rem; }
   .scale-row { display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem; }
   .scale-row label { margin: 0; white-space: nowrap; }
@@ -343,6 +348,14 @@
   .stat.accent .value { color: var(--rust-deep); }
   .note { font-size: 12.5px; color: var(--ink-soft); margin-top: 0.5rem; }
   footer { text-align: center; font-size: 12px; color: var(--ink-soft); margin-top: 2.5rem; }
+
+  /* 空狀態插圖 */
+  .empty-state { text-align: center; padding: 1.5rem 1rem 1rem; }
+  .empty-state .empty-illustration { width: 150px; height: 132px; margin: 0 auto 0.5rem; }
+  .empty-state .empty-title { font-size: 17px; font-weight: 700; color: var(--ink); margin: 0; }
+  .empty-state .empty-desc { font-size: 13px; line-height: 1.7; color: var(--ink-soft); margin: 8px 0 18px; }
+  .empty-state .empty-cta { display: inline-block; background: var(--rust); color: #FBF3E5; font-size: 13px; font-weight: 700; padding: 10px 22px; border: none; border-radius: 999px; cursor: pointer; }
+  .empty-state .empty-cta:hover { background: var(--rust-deep); }
 
   /* 計時器 */
   .timer-item { background: var(--cream); border: 1px solid var(--line); border-radius: 16px; padding: 1.25rem 1.25rem 1rem; margin-bottom: 1rem; }
@@ -470,7 +483,7 @@
   <button class="hamburger" id="menuBtn" aria-label="開啟選單">
     <span></span><span></span><span></span>
   </button>
-  <h1 id="topbarTitle">食譜查詢</h1>
+  <h1 id="topbarTitle">我的收藏</h1>
 </div>
 
 <!-- Drawer Overlay -->
@@ -483,8 +496,8 @@
     <h2>Baking Studio</h2>
   </div>
   <nav>
-    <button class="nav-btn active" data-page="recipe"><span class="nav-icon">🔍</span>食譜查詢</button>
-    <button class="nav-btn" data-page="favorites"><span class="nav-icon">⭐</span>我的收藏</button>
+    <button class="nav-btn active" data-page="favorites"><span class="nav-icon">⭐</span>我的收藏</button>
+    <button class="nav-btn" data-page="recipe"><span class="nav-icon">🔍</span>食譜查詢</button>
     <button class="nav-btn" data-page="convert"><span class="nav-icon">⚖️</span>單位換算</button>
     <button class="nav-btn" data-page="cost"><span class="nav-icon">💰</span>成本計算</button>
     <button class="nav-btn" data-page="timer"><span class="nav-icon">⏱️</span>計時器</button>
@@ -495,22 +508,36 @@
 
 <main>
 
-  <section class="page active" id="page-recipe">
+  <section class="page" id="page-recipe">
     <div class="card">
       <div class="card-head"><h2>查甜點</h2><span class="sub">輸入名稱搜尋</span></div>
       <input id="searchInput" type="text" placeholder="例如：餅乾、提拉米蘇、戚風蛋糕" />
+      <p class="note" id="recipeGridHint" style="margin-top:0.75rem;"></p>
       <div class="recipe-grid" id="recipeGrid"></div>
-      <p class="empty-msg" id="emptyMsg" style="display:none;">找不到符合的甜點，目前資料庫包含以下品項，可參考下方清單。</p>
+      <p class="empty-msg" id="emptyMsg" style="display:none;">找不到符合的甜點，換個關鍵字試試看，或直接新增自己的食譜。</p>
       <div style="display:flex;gap:8px;margin-top:1rem;flex-wrap:wrap;">
         <button class="btn" id="newRecipeBtn">+ 新增自己的食譜</button>
-        <button class="btn" id="scanRecipeBtn">📷 掃描食譜</button>
+        <button class="btn" id="scanRecipeBtn">📷 拍照當參考圖</button>
+        <button class="btn" id="pasteRecipeBtn">📋 貼上文字 / 匯入檔案</button>
       </div>
       <input type="file" id="scanRecipeInput" accept="image/*" capture="environment" style="display:none;" />
+
+      <div id="pasteRecipePanel" style="display:none;margin-top:1rem;padding-top:1rem;border-top:1px solid var(--line);">
+        <label style="margin-bottom:6px;">把食譜文字貼在這裡（標題、材料、步驟），或選擇 .txt / .pdf 檔案</label>
+        <textarea id="pasteRecipeText" rows="8" style="width:100%;font-family:'Noto Sans TC','Inter',sans-serif;font-size:14.5px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--cream);color:var(--ink);" placeholder="例如：&#10;檸檬磅蛋糕&#10;材料：&#10;無鹽奶油 200g&#10;細砂糖 200g&#10;全蛋 4顆&#10;步驟：&#10;1. 奶油加糖打發&#10;2. 分次加入蛋液"></textarea>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center;">
+          <button type="button" class="btn" id="pasteRecipeFileBtn">選擇檔案（.txt / .pdf）</button>
+          <input type="file" id="pasteRecipeFileInput" accept=".txt,.pdf,text/plain,application/pdf" style="display:none;" />
+          <button type="button" class="btn" id="pasteRecipeParseBtn">解析並建立食譜 →</button>
+          <button type="button" class="btn" id="pasteRecipeCancelBtn">取消</button>
+        </div>
+        <p class="note" style="margin-top:6px;">自動解析僅供輔助，材料份量、步驟分段不一定正確，請務必檢查並手動調整。</p>
+      </div>
     </div>
 
     <div class="card" id="detailCard" style="display:none;">
       <div class="detail-head">
-        <h3 id="detailName"></h3>
+        <h3 id="detailName"><span class="detail-name-star">★</span><span id="detailNameText"></span><span class="detail-name-star">★</span></h3>
         <div style="display:flex;align-items:center;gap:6px;">
           <button class="fav-star-detail" id="favStarDetail" aria-label="收藏這個食譜">★</button>
           <button class="btn" id="editRecipeBtn">編輯</button>
@@ -550,6 +577,10 @@
         <div><label>時間</label><input id="editTime" type="text" placeholder="例如：12-15分鐘" /></div>
       </div>
       <div style="margin-bottom:1rem;">
+        <label>模具尺寸（選填）</label>
+        <input id="editPanSize" type="text" placeholder="例如：6吋圓形活動模（直徑約15cm）或 1個長條模（約21×9×6cm）" />
+      </div>
+      <div style="margin-bottom:1rem;">
         <label>器具（用逗號分隔）</label>
         <input id="editEquipment" type="text" placeholder="例如：烤盤,打蛋器,刮刀" />
       </div>
@@ -587,19 +618,21 @@
     </div>
   </section>
 
-  <section class="page" id="page-favorites">
+  <section class="page active" id="page-favorites">
     <div class="card">
       <div class="card-head"><h2>我的收藏</h2><span class="sub">按星星收藏的食譜</span></div>
       <div class="recipe-grid" id="favoritesGrid"></div>
-      <div id="favoritesEmptyMsg" style="display:none;text-align:center;padding:1rem 0;">
-        <svg width="72" height="54" viewBox="0 0 72 54" aria-hidden="true" style="margin-bottom:0.75rem;">
-          <line x1="8" y1="14" x2="64" y2="14" stroke="var(--line)" stroke-width="2" stroke-linecap="round"/>
-          <path d="M10 16 H62 L55 44 a5 5 0 01-5 4 H22 a5 5 0 01-5-4 Z" fill="none" stroke="var(--line)" stroke-width="2" stroke-linejoin="round"/>
-          <line x1="26" y1="6" x2="22" y2="14" stroke="var(--ink-soft)" stroke-width="1.5" stroke-linecap="round"/>
-          <line x1="36" y1="4" x2="36" y2="14" stroke="var(--ink-soft)" stroke-width="1.5" stroke-linecap="round"/>
-          <line x1="46" y1="6" x2="50" y2="14" stroke="var(--ink-soft)" stroke-width="1.5" stroke-linecap="round"/>
+      <div id="favoritesEmptyMsg" class="empty-state" style="display:none;">
+        <svg class="empty-illustration" viewBox="0 0 200 200" fill="none">
+          <rect x="58" y="50" width="84" height="22" rx="9" fill="#E2C79B" stroke="#B5743C" stroke-width="6"/>
+          <rect x="86" y="34" width="28" height="16" rx="8" fill="#E2C79B" stroke="#B5743C" stroke-width="6"/>
+          <path d="M58 76 L142 76 L142 158 Q142 174 126 174 L74 174 Q58 174 58 158 Z" fill="#FBF3E5" stroke="#B5743C" stroke-width="6" stroke-linejoin="round"/>
+          <path d="M100 142 C84 128 78 118 84 110 Q92 100 100 112 Q108 100 116 110 C122 118 116 128 100 142 Z" fill="none" stroke="#D8B98A" stroke-width="5" stroke-linejoin="round" stroke-dasharray="2 9" stroke-linecap="round"/>
+          <circle cx="80" cy="158" r="4" fill="#E2C79B"/><circle cx="120" cy="160" r="3" fill="#E2C79B"/>
         </svg>
-        <p class="empty-msg" style="margin:0;">還沒有收藏的食譜，去「食譜查詢」按星星加入收藏吧～</p>
+        <p class="empty-title">還沒有收藏的食譜</p>
+        <p class="empty-desc">趕快去「食譜查詢」找喜歡的甜點，<br>按星星加入收藏吧～</p>
+        <button class="empty-cta" id="favEmptyGoSearchBtn">🔍 去食譜查詢看看</button>
       </div>
     </div>
   </section>
@@ -786,7 +819,7 @@ function compressImage(file, maxDim) {
 }
 
 /* ════════════════════════════
-   掃描食譜（OCR）
+   拍照當參考圖（不做文字辨識）
 ════════════════════════════ */
 document.getElementById('scanRecipeBtn').addEventListener('click', () => {
   document.getElementById('scanRecipeInput').click();
@@ -795,27 +828,148 @@ document.getElementById('scanRecipeInput').addEventListener('change', async (e) 
   const file = e.target.files[0];
   e.target.value = '';
   if (!file) return;
-  const btn = document.getElementById('scanRecipeBtn');
-  const originalText = btn.textContent;
-  btn.textContent = '辨識中…請稍候';
-  btn.disabled = true;
   try {
     const photo = await compressImage(file, 1000);
-    const result = await Tesseract.recognize(photo, 'chi_tra+eng', {});
-    const text = (result.data.text || '').split('\n').map(l => l.trim()).filter(Boolean).join('\n');
-    openEditor(null, text);
-    if (text) {
-      setEditPhoto(photo);
-      alert('已掃描完成！文字已自動帶入「步驟」欄位，請檢查並手動把材料、份量等資訊填寫到正確欄位（OCR辨識可能有誤，請務必校對）。');
-    } else {
-      alert('沒有辨識到文字，可能照片不夠清楚，你仍可以手動輸入食譜內容。');
-    }
+    openEditor(null);
+    setEditPhoto(photo);
+    alert('照片已附加，請參考照片內容手動輸入食譜（名稱、材料、步驟）。');
   } catch (err) {
-    alert('掃描失敗，請重新嘗試或改用手動輸入。');
-  } finally {
-    btn.textContent = originalText;
-    btn.disabled = false;
+    alert('照片讀取失敗，請重新嘗試。');
   }
+});
+
+/* ════════════════════════════
+   貼上文字 / 匯入檔案 → 自動解析食譜
+════════════════════════════ */
+function loadScriptOnce(src) {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
+    const s = document.createElement('script');
+    s.src = src; s.onload = () => resolve(); s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+async function extractPdfText(file) {
+  await loadScriptOnce('https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js');
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+  const buf = await file.arrayBuffer();
+  const pdf = await window.pdfjsLib.getDocument({ data: buf }).promise;
+  let text = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    text += content.items.map(it => it.str).join(' ') + '\n';
+  }
+  return text;
+}
+
+function parseRecipeText(raw) {
+  const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  if (!lines.length) return { name: '', ingredients: [], steps: [] };
+
+  const ingredientHeaders = ['材料', '食材', '配料', '原料', 'ingredients'];
+  const stepHeaders = ['做法', '作法', '步驟', '製作方法', '製作步驟', '烘焙步驟', 'steps', 'instructions', 'directions'];
+  const normalize = l => l.replace(/^#+\s*/, '').replace(/[:：]\s*$/, '');
+  const matchHeader = (l, list) => {
+    const n = normalize(l).toLowerCase();
+    return list.some(h => n === h || n.startsWith(h));
+  };
+
+  let name = '';
+  let mode = null;
+  let sawHeader = false;
+  const ingredientLines = [];
+  const stepLines = [];
+
+  lines.forEach((line, idx) => {
+    if (matchHeader(line, ingredientHeaders)) { mode = 'ingredients'; sawHeader = true; return; }
+    if (matchHeader(line, stepHeaders)) { mode = 'steps'; sawHeader = true; return; }
+    const clean = normalize(line);
+    if (idx === 0 && !mode) { name = clean.replace(/^[\d.、\-\*\s]+/, ''); return; }
+    if (mode === 'ingredients') ingredientLines.push(clean);
+    else if (mode === 'steps') stepLines.push(clean);
+    else ingredientLines.push(clean);
+  });
+
+  if (!sawHeader) {
+    ingredientLines.length = 0; stepLines.length = 0;
+    const amountUnitRe = /[\d０-９]+(\.\d+)?\s*(g|ml|公克|克|cc|毫升|顆|個|大匙|小匙|茶匙|湯匙|杯|根|片|塊|條|包|罐)/i;
+    lines.slice(1).forEach(line => {
+      if (amountUnitRe.test(line) && line.length <= 30) ingredientLines.push(line);
+      else stepLines.push(line);
+    });
+  }
+
+  const amountUnitExtractRe = /^(.*?)[\s:：]+([\d０-９.]+)\s*(g|ml|公克|克|cc|毫升|顆|個)\s*$/i;
+  const unitMap = { '公克': 'g', '克': 'g', 'cc': 'ml', '毫升': 'ml', '個': '顆', '顆': '顆', 'g': 'g', 'ml': 'ml' };
+  const ingredients = ingredientLines.map(line => {
+    const stripped = line.replace(/^[\d.、\-\*\s]+/, '');
+    const m = stripped.match(amountUnitExtractRe);
+    if (m) {
+      const unit = unitMap[m[3].toLowerCase()] || unitMap[m[3]] || '適量';
+      return { name: m[1].trim(), amount: parseFloat(m[2]) || 0, unit };
+    }
+    return { name: stripped, amount: 0, unit: '適量' };
+  });
+
+  const steps = stepLines.map(line => line.replace(/^[\d.、\-\*\s]+/, ''));
+
+  return { name, ingredients, steps };
+}
+
+function applyParsedRecipeToEditor(parsed) {
+  openEditor(null);
+  document.getElementById('editName').value = parsed.name || '';
+  document.getElementById('editIngredientRows').innerHTML = '';
+  if (parsed.ingredients.length) {
+    parsed.ingredients.forEach(ing => createEditIngredientRow(ing.name, ing.amount, ing.unit));
+  } else {
+    createEditIngredientRow('', 0, 'g');
+  }
+  document.getElementById('editSteps').value = parsed.steps.join('\n');
+}
+
+document.getElementById('pasteRecipeBtn').addEventListener('click', () => {
+  const panel = document.getElementById('pasteRecipePanel');
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+});
+document.getElementById('pasteRecipeCancelBtn').addEventListener('click', () => {
+  document.getElementById('pasteRecipePanel').style.display = 'none';
+  document.getElementById('pasteRecipeText').value = '';
+});
+document.getElementById('pasteRecipeFileBtn').addEventListener('click', () => {
+  document.getElementById('pasteRecipeFileInput').click();
+});
+document.getElementById('pasteRecipeFileInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  const btn = document.getElementById('pasteRecipeFileBtn');
+  const original = btn.textContent;
+  btn.textContent = '讀取中…'; btn.disabled = true;
+  try {
+    let text = '';
+    if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+      text = await extractPdfText(file);
+    } else {
+      text = await file.text();
+    }
+    document.getElementById('pasteRecipeText').value = text.trim();
+  } catch (err) {
+    alert('檔案讀取失敗，請改用複製貼上文字的方式。');
+  } finally {
+    btn.textContent = original; btn.disabled = false;
+  }
+});
+document.getElementById('pasteRecipeParseBtn').addEventListener('click', () => {
+  const raw = document.getElementById('pasteRecipeText').value.trim();
+  if (!raw) { alert('請先貼上文字或選擇檔案'); return; }
+  const parsed = parseRecipeText(raw);
+  applyParsedRecipeToEditor(parsed);
+  document.getElementById('pasteRecipePanel').style.display = 'none';
+  document.getElementById('pasteRecipeText').value = '';
+  alert('已自動帶入食譜欄位，請務必檢查並手動修正材料份量、步驟分段等內容（自動解析無法保證完全正確）。');
 });
 
 // Splash Screen
@@ -848,167 +1002,542 @@ function switchPage(page) {
   document.getElementById('topbarTitle').textContent = pageTitles[page] || '';
 }
 
+/* ════════════════════════════
+   食譜分類插圖
+════════════════════════════ */
+const categoryInfo = {
+  cookie:  { label: '餅乾',   svg: '<circle cx="100" cy="100" r="74" fill="#C2854A" stroke="#9A5E2C" stroke-width="6"/><circle cx="76" cy="80" r="9" fill="#5C3A22"/><circle cx="122" cy="72" r="7.5" fill="#5C3A22"/><circle cx="128" cy="118" r="8.5" fill="#5C3A22"/><circle cx="82" cy="126" r="7.5" fill="#5C3A22"/><circle cx="104" cy="100" r="6.5" fill="#5C3A22"/>' },
+  cake:    { label: '蛋糕',   svg: '<ellipse cx="100" cy="156" rx="64" ry="8" fill="#E7D2AE"/><rect x="50" y="100" width="100" height="54" rx="8" fill="#C2854A" stroke="#9A5E2C" stroke-width="6"/><rect x="54" y="120" width="92" height="11" fill="#F2E6CF"/><path d="M46 100 Q46 78 70 78 L130 78 Q154 78 154 100 Q142 94 130 100 Q118 106 106 100 Q94 94 82 100 Q70 106 58 100 Q51 97 46 100 Z" fill="#F6EDDD" stroke="#9A5E2C" stroke-width="5" stroke-linejoin="round"/><line x1="100" y1="80" x2="100" y2="58" stroke="#9A5E2C" stroke-width="5" stroke-linecap="round"/><circle cx="100" cy="52" r="9" fill="#B5743C" stroke="#9A5E2C" stroke-width="3"/>' },
+  tart:    { label: '塔派',   svg: '<circle cx="100" cy="100" r="74" fill="#C2854A" stroke="#9A5E2C" stroke-width="6"/><circle cx="100" cy="100" r="58" fill="#F2E2C0"/><g fill="#B5743C" stroke="#9A5E2C" stroke-width="3"><circle cx="100" cy="66" r="11"/><circle cx="130" cy="84" r="11"/><circle cx="130" cy="118" r="11"/><circle cx="100" cy="136" r="11"/><circle cx="70" cy="118" r="11"/><circle cx="70" cy="84" r="11"/><circle cx="100" cy="101" r="12"/></g>' },
+  muffin:  { label: '馬芬',   svg: '<path d="M66 110 L134 110 L126 162 Q125 168 119 168 L81 168 Q75 168 74 162 Z" fill="#E2C79B" stroke="#9A5E2C" stroke-width="6" stroke-linejoin="round"/><line x1="90" y1="116" x2="86" y2="162" stroke="#9A5E2C" stroke-width="3"/><line x1="110" y1="116" x2="114" y2="162" stroke="#9A5E2C" stroke-width="3"/><path d="M56 112 Q54 68 100 62 Q146 68 144 112 Q120 100 100 105 Q80 100 56 112 Z" fill="#C2854A" stroke="#9A5E2C" stroke-width="6" stroke-linejoin="round"/><circle cx="84" cy="92" r="6" fill="#5C3A22"/><circle cx="112" cy="86" r="5.5" fill="#5C3A22"/><circle cx="104" cy="104" r="5" fill="#5C3A22"/>' },
+  souffle: { label: '舒芙蕾', svg: '<path d="M64 110 Q58 60 100 56 Q142 60 136 110 Z" fill="#C9925A" stroke="#9A5E2C" stroke-width="6" stroke-linejoin="round"/><g fill="#FBF3E5"><circle cx="88" cy="76" r="3"/><circle cx="110" cy="70" r="3"/><circle cx="100" cy="90" r="3"/></g><path d="M62 112 L138 112 L132 160 Q131 166 124 166 L76 166 Q69 166 68 160 Z" fill="#FBF3E5" stroke="#9A5E2C" stroke-width="6" stroke-linejoin="round"/>' },
+  nobake:  { label: '免烤甜點', svg: '<path d="M62 96 L138 96 L130 158 Q129 166 121 166 L79 166 Q71 166 70 158 Z" fill="#FBF6EC" stroke="#9A5E2C" stroke-width="6" stroke-linejoin="round"/><path d="M70 124 L130 124 L130 158 Q129 166 121 166 L79 166 Q71 166 70 158 Z" fill="#C2854A"/><path d="M66 96 Q68 74 100 74 Q132 74 134 96 Q120 90 100 94 Q80 90 66 96 Z" fill="#F6EDDD" stroke="#9A5E2C" stroke-width="5" stroke-linejoin="round"/>' },
+  bread:   { label: '麵包',   svg: '<path d="M44 142 Q36 96 100 90 Q164 96 156 142 Q156 150 148 150 L52 150 Q44 150 44 142 Z" fill="#C2854A" stroke="#9A5E2C" stroke-width="6" stroke-linejoin="round"/><g stroke="#9A5E2C" stroke-width="5" stroke-linecap="round"><line x1="74" y1="106" x2="62" y2="128"/><line x1="100" y1="102" x2="88" y2="126"/><line x1="126" y1="106" x2="114" y2="128"/></g>' },
+  donut:   { label: '甜甜圈', svg: '<circle cx="100" cy="100" r="74" fill="#C2854A" stroke="#9A5E2C" stroke-width="6"/><circle cx="100" cy="100" r="26" fill="#FAF5EC"/>' }
+};
+function categoryIconHtml(category, size) {
+  const info = categoryInfo[category] || categoryInfo.cookie;
+  return `<svg viewBox="0 0 200 200" width="${size}" height="${size}" fill="none">${info.svg}</svg>`;
+}
+
 const recipes = [
-  { id:"cookie", name:"巧克力豆餅乾", keywords:["餅乾","cookie","chocolate chip"],
+  { id:"cookie", name:"巧克力豆餅乾", difficulty:"簡單", category:"cookie", keywords:["餅乾","cookie","chocolate chip"],
     yield:"約20片", temp:"180°C", time:"11-13分鐘",
     equipment:["烤盤","烘焙紙","電動打蛋器","刮刀","量秤"],
     ingredients:[{name:"無鹽黃油（軟化）",amount:200,unit:"g"},{name:"細砂糖",amount:100,unit:"g"},{name:"黑糖",amount:100,unit:"g"},{name:"全蛋",amount:2,unit:"顆"},{name:"香草精",amount:5,unit:"ml"},{name:"低筋麵粉",amount:300,unit:"g"},{name:"小蘇打粉",amount:5,unit:"g"},{name:"鹽",amount:3,unit:"g"},{name:"巧克力豆",amount:200,unit:"g"}],
-    steps:["黃油加細砂糖、黑糖打發至顏色變淺、體積膨大。","分次加入蛋液，每次攪打均勻再加下一次。","加入香草精拌勻。","麵粉、小蘇打粉、鹽混合過篩後加入，拌至沒有乾粉。","加入巧克力豆拌勻。","用挖勺取約30克麵糊放上烤盤，間隔3公分。","180°C烤11-13分鐘，邊緣金黃中心微軟即可出爐。"],
+    steps:["無鹽黃油提前回溫軟化，放入大碗中加入細砂糖與黑糖，用電動打蛋器中高速打發至顏色變淺、體積膨鬆（約2-3分鐘）。","蛋液分2-3次加入，每次都要攪打至完全吸收、看不到油水分離，才能加下一次。","加入香草精，稍微攪拌均勻。","低筋麵粉、小蘇打粉、鹽一同過篩加入盆中，改用刮刀以切拌方式混合，拌到完全看不到乾粉即可，勿過度攪拌以免出筋。","加入巧克力豆，輕輕拌勻使其均勻分布在麵糊中。","用挖勺或湯匙取約30克一份的麵糊放上鋪好烘焙紙的烤盤，每球之間間隔約3公分（烘烤時會攤平變大）。","放入預熱180°C的烤箱，烘烤11-13分鐘，至邊緣呈金黃色、中心仍微軟即可出爐，放在烤盤上靜置5分鐘定型後再移至架上放涼。"],
     tip:"麵糊冷藏30分鐘再烤，口感會更厚實不易攤平。" },
 
-  { id:"brownie", name:"脆皮布朗尼", keywords:["布朗尼","brownie","巧克力蛋糕","脆皮布朗尼"],
+  { id:"brownie", name:"脆皮布朗尼", difficulty:"簡單", category:"cake", panSize:"8吋方形烤盤（約20×20cm）", keywords:["布朗尼","brownie","巧克力蛋糕","脆皮布朗尼"],
     yield:"約8吋方形烤盤份量", temp:"150°C / 130°C（上下火）", time:"20-25分鐘",
     equipment:["8吋方形烤盤","烘焙紙","隔水加熱鍋或微波爐","打蛋器","刮刀","篩網"],
     ingredients:[{name:"無鹽奶油（切塊）",amount:210,unit:"g"},{name:"黑巧克力（75%以上，塊狀、豆）",amount:130,unit:"g"},{name:"全蛋（約4顆）",amount:200,unit:"g"},{name:"紅糖（可替換成砂糖）",amount:60,unit:"g"},{name:"砂糖",amount:65,unit:"g"},{name:"低筋麵粉（須過篩）",amount:50,unit:"g"},{name:"可可粉（須過篩）",amount:20,unit:"g"},{name:"核桃（可加可不加）",amount:0,unit:"適量"},{name:"蘭姆酒（可加可不加）",amount:0,unit:"適量"}],
-    steps:["無鹽奶油與黑巧克力隔水加熱或微波融化後混合均勻，放涼備用。","全蛋加紅糖、砂糖打至略發（顏色稍微變白）。","將融化的巧克力奶油液倒入蛋糖糊中拌勻。","篩入低筋麵粉拌勻。","篩入可可粉拌勻。","加入核桃（可選）拌勻，喜歡可加適量蘭姆酒提香。","倒入鋪好烘焙紙的烤盤，上下火150°C／130°C，烤20-25分鐘。","出爐放涼後切塊。"],
+    steps:["無鹽奶油與黑巧克力放入耐熱碗中，隔水加熱或微波分次加熱至完全融化，攪拌混合均勻，放涼至微溫備用。","全蛋加入紅糖與砂糖，用打蛋器攪打至略微發泡、顏色稍微變淺（不需打發到蓬鬆，呈現濃稠狀即可）。","將放涼的巧克力奶油液緩緩倒入蛋糖糊中，邊倒邊攪拌至完全融合均勻。","低筋麵粉過篩加入，用刮刀以切拌方式拌勻至無乾粉顆粒。","可可粉過篩加入，同樣切拌均勻成滑順有光澤的麵糊。","依喜好加入核桃拌勻，也可加入適量蘭姆酒提香攪拌均勻。","倒入鋪好烘焙紙的8吋方形烤盤中，用刮刀抹平表面，以上火150°C／下火130°C烘烤20-25分鐘，至表面形成一層薄薄的脆殼、中心仍濕潤即可出爐。","出爐後放涼至室溫，再放入冰箱冷藏定型後切塊，口感更扎實好切。"],
     tip:"已改用75%以上黑巧克力並調降糖量約25%，甜度更低、苦甜味更明顯；上下火不同溫設定是脆皮關鍵。" },
 
-  { id:"cheesecake", name:"重乳酪蛋糕", keywords:["乳酪蛋糕","cheesecake","起司蛋糕"],
+  { id:"cheesecake", name:"重乳酪蛋糕", difficulty:"中等", category:"cake", panSize:"6吋圓形活動模（直徑約15cm）", keywords:["乳酪蛋糕","cheesecake","起司蛋糕"],
     yield:"6吋圓形蛋糕", temp:"160°C（水浴法）", time:"50-60分鐘",
     equipment:["6吋活底圓模","烤盤（水浴用）","電動打蛋器","刮刀","鋁箔紙"],
     ingredients:[{name:"奶油乳酪（室溫）",amount:400,unit:"g"},{name:"細砂糖",amount:100,unit:"g"},{name:"全蛋",amount:2,unit:"顆"},{name:"酸奶",amount:100,unit:"g"},{name:"玉米粉",amount:15,unit:"g"},{name:"檸檬汁",amount:10,unit:"ml"},{name:"消化餅底（壓碎）",amount:100,unit:"g"},{name:"融化黃油",amount:40,unit:"g"}],
-    steps:["消化餅碎加融化黃油拌勻，壓入模具底部，冷藏定型。","奶油乳酪打軟，加糖打至光滑無顆粒。","分次加入蛋液拌勻，再加酸奶、玉米粉、檸檬汁拌勻。","倒入模具，模具外包鋁箔紙防止滲水。","放入裝水的烤盤中，160°C水浴烤50-60分鐘，表面微凝固但中心仍有點晃動。","關火留在烤箱內回溫30分鐘，再冷藏至少4小時定型。"],
+    steps:["消化餅壓碎成細粉，加入融化黃油拌勻至呈濕沙狀，倒入模具底部用湯匙背面壓實壓平，放入冰箱冷藏定型備用。","奶油乳酪提前回溫軟化，用電動打蛋器打至滑順無顆粒，加入細砂糖繼續打至完全融合、質地光滑。","蛋液分次加入，每次都攪打均勻再加下一次，避免攪拌過度打入太多空氣（容易導致表面裂開）。","加入酸奶、玉米粉與檸檬汁，用刮刀以低速拌勻至質地均勻滑順。","取出冷藏好的餅乾底模具，將乳酪糊緩緩倒入抹平，模具外層包覆兩層鋁箔紙，防止水浴時滲水進入。","將模具放入裝有熱水的烤盤中（水量至烤模外側一半高），放入預熱160°C的烤箱，水浴烘烤50-60分鐘，至表面微微凝固但中心輕搖仍有點晃動即可。","關火後讓蛋糕留在烤箱內回溫30分鐘（避免溫差過大導致表面塌陷），取出放涼後再冷藏至少4小時定型，隔夜更佳。"],
     tip:"水浴法能避免表面裂開，是重乳酪蛋糕成功的關鍵。" },
 
-  { id:"tiramisu", name:"提拉米蘇", keywords:["提拉米蘇","tiramisu","免烤"],
+  { id:"tiramisu", name:"提拉米蘇", difficulty:"簡單", category:"nobake", keywords:["提拉米蘇","tiramisu","免烤"],
     yield:"6人份", temp:"免烤", time:"冷藏至少4小時",
     equipment:["打蛋器","深盤（沾咖啡用）","方形容器或玻璃杯","篩網"],
     ingredients:[{name:"蛋黃",amount:3,unit:"顆"},{name:"細砂糖",amount:60,unit:"g"},{name:"馬斯卡彭乳酪",amount:250,unit:"g"},{name:"濃咖啡",amount:150,unit:"ml"},{name:"手指餅",amount:200,unit:"g"},{name:"可可粉",amount:0,unit:"適量"}],
-    steps:["蛋黃加糖隔水加熱打至濃稠泛白（或視個人喜好直接打發）。","加入馬斯卡彭乳酪輕輕拌勻成光滑乳酪餡。","手指餅快速沾過咖啡（單面1-2秒，避免泡爛），鋪一層於容器底部。","鋪一層乳酪餡，重複鋪餅與餡至滿。","冷藏至少4小時，食用前篩上可可粉。"],
+    steps:["蛋黃加入細砂糖，隔水加熱用打蛋器持續攪打至濃稠泛白（若不介意生蛋風險也可直接打發不隔水加熱）。","加入室溫軟化的馬斯卡彭乳酪，用刮刀輕柔拌勻至光滑無顆粒的乳酪餡，避免過度攪拌導致出水。","手指餅乾快速沾過放涼的濃咖啡（單面浸泡1-2秒即可，太久會吸水過多導致軟爛塌陷），整齊鋪一層在容器底部。","在餅乾層上鋪一層乳酪餡抹平，重複「沾咖啡餅乾＋乳酪餡」的順序鋪疊，直到容器鋪滿，最上層以乳酪餡收尾並抹平表面。","包上保鮮膜，放入冰箱冷藏至少4小時（隔夜風味更融合），食用前用小篩子均勻篩上一層可可粉即可享用。"],
     tip:"使用生蛋黃版本建議選用新鮮優質蛋，或改用加熱版作法較安心。" },
 
-  { id:"muffin", name:"藍莓馬芬", keywords:["馬芬","muffin","杯子蛋糕"],
+  { id:"muffin", name:"藍莓馬芬", difficulty:"簡單", category:"muffin", panSize:"12孔標準馬芬模（單孔直徑約7cm）", keywords:["馬芬","muffin","杯子蛋糕"],
     yield:"12個標準馬芬", temp:"190°C", time:"18-20分鐘",
     equipment:["馬芬烤模","紙杯","打蛋器","刮刀"],
     ingredients:[{name:"低筋麵粉",amount:280,unit:"g"},{name:"泡打粉",amount:10,unit:"g"},{name:"鹽",amount:3,unit:"g"},{name:"細砂糖",amount:150,unit:"g"},{name:"全蛋",amount:2,unit:"顆"},{name:"牛奶",amount:240,unit:"ml"},{name:"融化黃油",amount:120,unit:"g"},{name:"藍莓",amount:150,unit:"g"}],
-    steps:["麵粉、泡打粉、鹽混合過篩。","蛋、糖、牛奶、融化黃油攪打均勻。","將濕料倒入乾料中，輕拌幾下至剛好混合，不要過度攪拌。","加入藍莓輕輕拌入。","麵糊分裝入紙杯約八分滿。","190°C烤18-20分鐘，表面金黃、竹籤插入不沾即可。"],
+    steps:["低筋麵粉、泡打粉與鹽一同過篩到大碗中混合均勻。","另取一盆，將蛋、細砂糖、牛奶與融化黃油用打蛋器攪打均勻成濕料。","將濕料一次倒入乾粉料中，用刮刀輕輕拌幾下至剛好看不到乾粉即可，麵糊有點顆粒粗糙是正常的，切勿過度攪拌（會出筋讓馬芬變硬扎實）。","加入藍莓，用刮刀輕輕翻拌1-2下使其分布均勻，動作要輕避免藍莓出水染色。","將麵糊用挖勺分裝入馬芬紙杯中，約八分滿。","放入預熱190°C的烤箱，烘烤18-20分鐘，至表面金黃膨起、竹籤插入中心拔出不沾黏即可出爐。"],
     tip:"麵糊有點顆粒粗糙是正常的，過度攪拌會讓馬芬變硬。" },
 
-  { id:"scone", name:"原味司康", keywords:["司康","scone"],
+  { id:"scone", name:"原味司康", difficulty:"簡單", category:"bread", keywords:["司康","scone"],
     yield:"約8個", temp:"200°C", time:"14-16分鐘",
     equipment:["烤盤","烘焙紙","刮板","圓形切模"],
     ingredients:[{name:"低筋麵粉",amount:300,unit:"g"},{name:"泡打粉",amount:15,unit:"g"},{name:"鹽",amount:3,unit:"g"},{name:"細砂糖",amount:50,unit:"g"},{name:"冷黃油（切塊）",amount:100,unit:"g"},{name:"鮮奶油或牛奶",amount:150,unit:"ml"},{name:"全蛋",amount:1,unit:"顆"}],
-    steps:["麵粉、泡打粉、鹽、糖混合。","加入冷黃油塊，用手指快速搓成粗砂粒狀（避免黃油融化）。","加入打散的蛋與鮮奶油，輕輕混合成團，不要過度揉。","整型成約2公分厚，用切模壓出圓形。","放上烤盤，表面可刷一層牛奶或蛋液。","200°C烤14-16分鐘至表面金黃。"],
+    steps:["低筋麵粉、泡打粉、鹽與細砂糖放入大盆中，用打蛋器稍微混合均勻。","將冷藏的黃油切成小塊加入乾粉中，用指尖快速搓揉捏碎，混合成粗砂粒狀（動作要快，避免手溫融化黃油影響層次）。","將蛋液打散與鮮奶油（或牛奶）混合，倒入粉料中，用刮刀輕輕混合成團，切勿過度搓揉，看到還有點粉粒沒關係。","將麵團整型成約2公分厚的圓餅狀，用圓形切模垂直下壓（不要扭轉，以免影響膨脹）切出圓形。","整齊排上鋪烘焙紙的烤盤，表面可刷一層薄薄的牛奶或蛋液增加光澤。","放入預熱200°C的烤箱，烘烤14-16分鐘，至表面金黃、側邊明顯裂開即可出爐。"],
     tip:"麵團與器具盡量保持冰涼，口感才會酥鬆分層。" },
 
-  { id:"poundcake", name:"香草磅蛋糕", keywords:["磅蛋糕","pound cake"],
+  { id:"poundcake", name:"香草磅蛋糕", difficulty:"簡單", category:"cake", panSize:"1個長條蛋糕模（約21×9×6cm）", keywords:["磅蛋糕","pound cake"],
     yield:"1個長條蛋糕", temp:"165°C", time:"50-60分鐘",
     equipment:["長條蛋糕模","電動打蛋器","刮刀"],
     ingredients:[{name:"無鹽黃油（室溫）",amount:200,unit:"g"},{name:"細砂糖",amount:200,unit:"g"},{name:"全蛋",amount:4,unit:"顆"},{name:"低筋麵粉",amount:200,unit:"g"},{name:"泡打粉",amount:4,unit:"g"},{name:"香草精",amount:5,unit:"ml"}],
-    steps:["黃油打發至顏色變淺、體積膨鬆。","加入糖繼續打發至蓬鬆狀態。","分次加入蛋液，每次都打勻再加下一顆，避免油水分離。","篩入麵粉與泡打粉，輕拌至無乾粉，加入香草精。","倒入模具，輕敲出空氣，中央用刮刀劃一刀幫助膨脹均勻。","165°C烤50-60分鐘，竹籤插入不沾即可。"],
+    steps:["無鹽黃油提前回溫軟化，放入大碗中用電動打蛋器中高速打發至顏色變淺、體積膨鬆。","加入細砂糖，繼續打發約2-3分鐘至呈現蓬鬆、近乎泛白的羽毛狀質地。","蛋液分4-5次緩慢加入，每次都要打勻、完全吸收後再加下一次，若出現油水分離可先加一點配方內的麵粉拌入挽救。","低筋麵粉與泡打粉一同過篩加入，用刮刀輕輕拌至看不到乾粉，加入香草精拌勻成均勻有光澤的麵糊。","倒入鋪好烘焙紙的長條模中，輕敲模具底部數下震出大氣泡，用刮刀或沾濕的湯匙在中央劃一刀，幫助受熱時從中間裂開膨脹更平均。","放入預熱165°C的烤箱，烘烤50-60分鐘，至表面深金黃色、竹籤插入中心拔出不沾黏即可出爐，連模放涼後再脫模。"],
     tip:"所有材料回溫至室溫再操作，蛋糕才不容易油水分離。" },
 
-  { id:"chiffon", name:"戚風蛋糕", keywords:["戚風蛋糕","chiffon","海綿蛋糕"],
+  { id:"chiffon", name:"戚風蛋糕", difficulty:"中等", category:"cake", panSize:"6吋中空戚風模（直徑約15cm）", keywords:["戚風蛋糕","chiffon","海綿蛋糕"],
     yield:"6吋圓形蛋糕（中空模）", temp:"160°C", time:"35-40分鐘",
     equipment:["6吋中空戚風模","電動打蛋器","刮刀","兩個攪拌盆"],
     ingredients:[{name:"蛋黃",amount:4,unit:"顆"},{name:"細砂糖（蛋黃用）",amount:20,unit:"g"},{name:"沙拉油",amount:50,unit:"ml"},{name:"牛奶",amount:60,unit:"ml"},{name:"低筋麵粉",amount:80,unit:"g"},{name:"蛋白",amount:4,unit:"顆"},{name:"細砂糖（蛋白用）",amount:60,unit:"g"},{name:"檸檬汁",amount:0,unit:"少許"}],
-    steps:["蛋黃加糖打勻，加入沙拉油、牛奶拌勻。","篩入麵粉，輕拌至無顆粒成蛋黃麵糊。","蛋白加檸檬汁，分次加糖打至硬性發泡（拉起呈直立尖角）。","取三分之一蛋白霜與蛋黃麵糊拌勻，再倒回剩餘蛋白霜中，切拌方式輕柔拌勻避免消泡。","倒入模具，輕震出大氣泡。","160°C烤35-40分鐘，出爐立刻倒扣放涼，完全冷卻才脫模。"],
+    steps:["蛋黃加入細砂糖，用打蛋器攪拌至糖融化、顏色稍微變淺，加入沙拉油與牛奶攪拌均勻成乳化狀態。","低筋麵粉過篩加入蛋黃糊中，用打蛋器或刮刀以Z字形輕拌至完全無顆粒，成滑順的蛋黃麵糊。","另取一個乾淨無油無水的盆，蛋白加入幾滴檸檬汁，用電動打蛋器中速打出粗泡後，分3次加入細砂糖，繼續打至硬性發泡（攪拌頭拉起蛋白霜呈直立不下垂的尖角）。","取三分之一打發蛋白霜加入蛋黃麵糊中，用刮刀以切拌方式快速拌勻，讓質地變輕盈。","將拌勻的蛋黃糊倒回剩餘的蛋白霜盆中，用切拌手法（從底部往上翻）輕柔混合均勻，動作要快但輕，避免消泡。","將麵糊倒入中空戚風模中，用刮刀抹平表面，輕震模具底部2-3下震出內部大氣泡。","放入預熱160°C的烤箱，烘烤35-40分鐘，至表面金黃、用手輕壓會回彈即可出爐，立刻倒扣放涼，完全冷卻後才能脫模（倒扣是防止蛋糕回縮塌陷的關鍵）。"],
     tip:"蛋白打發狀態與切拌手法是戚風成功與否的關鍵，動作要輕但確實。" },
 
-  { id:"mousse", name:"巧克力慕斯", keywords:["慕斯","mousse","免烤"],
+  { id:"mousse", name:"巧克力慕斯", difficulty:"中等", category:"nobake", keywords:["慕斯","mousse","免烤"],
     yield:"4人份", temp:"免烤", time:"冷藏至少3小時",
     equipment:["打蛋器","隔水加熱鍋","攪拌盆","玻璃杯"],
     ingredients:[{name:"黑巧克力",amount:150,unit:"g"},{name:"動物性鮮奶油",amount:200,unit:"ml"},{name:"全蛋",amount:2,unit:"顆"},{name:"細砂糖",amount:30,unit:"g"}],
-    steps:["巧克力隔水加熱融化，放涼至微溫。","蛋黃加一半糖打至濃稠泛白，拌入融化巧克力。","蛋白加剩餘糖打至硬性發泡。","鮮奶油打至六分發（有紋路但仍流動）。","將蛋白霜與打發鮮奶油分次輕柔拌入巧克力蛋黃糊中。","倒入杯中冷藏至少3小時定型。"],
+    steps:["黑巧克力切碎，隔水加熱攪拌至完全融化，離火放涼至微溫（約人體溫度，避免後面拌入時把蛋白霜或鮮奶油燙化消泡）。","蛋黃加入一半的細砂糖，用打蛋器攪打至濃稠泛白，緩緩倒入融化巧克力中拌勻成滑順的巧克力蛋黃糊。","另取乾淨無油無水的盆，蛋白加入剩餘細砂糖，用電動打蛋器打至硬性發泡（拉起呈直立尖角）。","動物性鮮奶油用打蛋器打至六分發，呈現有流動感但拉起會留下緩慢消失的紋路即可（不要打過發，影響口感滑順度）。","取三分之一蛋白霜拌入巧克力蛋黃糊中拌勻，再分次加入打發鮮奶油與剩餘蛋白霜，用刮刀切拌方式輕柔混合，動作要輕保留空氣感。","將慕斯糊倒入玻璃杯中，輕敲杯底震出氣泡，放入冰箱冷藏至少3小時至定型即可享用。"],
     tip:"全程動作要輕柔，保留打發的空氣感慕斯才會綿密。" },
 
-  { id:"cremebrulee", name:"烤布蕾", keywords:["烤布蕾","creme brulee","焦糖布蕾"],
+  { id:"cremebrulee", name:"烤布蕾", difficulty:"中等", category:"souffle", panSize:"4個烤盅（每個約180ml）", keywords:["烤布蕾","creme brulee","焦糖布蕾"],
     yield:"4個烤盅", temp:"150°C（水浴法）", time:"35-40分鐘",
     equipment:["烤盅4個","噴槍（可選）","烤盤（水浴用）","篩網"],
     ingredients:[{name:"動物性鮮奶油",amount:400,unit:"ml"},{name:"香草精",amount:0,unit:"適量"},{name:"蛋黃",amount:5,unit:"顆"},{name:"細砂糖（布丁用）",amount:60,unit:"g"},{name:"細砂糖（表面焦糖用）",amount:0,unit:"適量"}],
-    steps:["鮮奶油加香草小火加熱至微滾邊冒泡即離火，放涼一下。","蛋黃加糖攪勻（不要打出泡泡）。","將溫熱鮮奶油緩緩沖入蛋黃糖液，邊攪邊倒避免結塊。","過篩後倒入烤盅。","烤盅放入裝水的烤盤，150°C水浴烤35-40分鐘至中心微晃動但邊緣已凝固。","冷藏至少2小時，食用前撒糖用噴槍炙燒成脆殼。"],
+    steps:["動物性鮮奶油加香草精放入鍋中，以小火加熱至鍋邊微滾冒小泡即離火，放涼幾分鐘降溫。","蛋黃與細砂糖放入盆中，用打蛋器輕輕攪拌均勻即可（不要打發出太多泡泡，否則烤出來表面會有氣孔）。","將降溫後的鮮奶油緩緩、分次沖入蛋黃糖液中，邊倒邊快速攪拌，避免溫度過高使蛋黃結塊。","將布丁液用細網篩過篩一次，濾掉氣泡與蛋筋，倒入烤盅中至約8-9分滿。","烤盅放入裝有溫熱水的烤盤中（水量至烤盅高度一半），放入預熱150°C的烤箱，水浴烘烤35-40分鐘，至中心輕搖仍有點晃動、邊緣已經凝固即可出爐。","放涼後移入冰箱冷藏至少2小時。食用前在表面均勻撒上一層細砂糖，用噴槍以畫圈方式炙燒至融化金黃，待冷卻凝固成脆殼即可享用。"],
     tip:"沒有噴槍可用烤箱上火短時間炙烤，但效果不如噴槍均勻。" },
 
-  { id:"pannacotta", name:"義式奶酪", keywords:["奶酪","panna cotta"],
+  { id:"pannacotta", name:"義式奶酪", difficulty:"簡單", category:"nobake", panSize:"4個布丁杯（每個約150-200ml）", keywords:["奶酪","panna cotta"],
     yield:"4個布丁杯", temp:"免烤", time:"冷藏至少4小時",
     equipment:["小鍋","攪拌盆","布丁杯","篩網"],
     ingredients:[{name:"動物性鮮奶油",amount:300,unit:"ml"},{name:"牛奶",amount:200,unit:"ml"},{name:"細砂糖",amount:50,unit:"g"},{name:"吉利丁片",amount:8,unit:"g"},{name:"香草精",amount:0,unit:"適量"}],
-    steps:["吉利丁片用冷水泡軟備用。","鮮奶油、牛奶、糖小火加熱至糖融化，不要煮滾。","離火後加入泡軟瀝乾的吉利丁片攪拌至完全融化。","加入香草精，過篩後倒入杯中。","冷藏至少4小時至完全凝固。"],
+    steps:["吉利丁片放入冷水中浸泡5-10分鐘至完全軟化備用。","動物性鮮奶油、牛奶與細砂糖放入小鍋中，以小火加熱攪拌至糖完全融化，鍋邊微微冒泡即可離火，切勿煮沸（會破壞鮮奶油風味與口感）。","將泡軟的吉利丁片擠乾多餘水分，加入溫熱的鮮奶油液中，攪拌至完全融化看不到顆粒。","加入香草精拌勻，將液體用細網篩過篩一次（讓口感更細緻），分裝倒入布丁杯中。","放涼至室溫後，移入冰箱冷藏至少4小時至完全凝固定型即可享用。"],
     tip:"喜歡軟嫩口感可減少吉利丁用量，但脫模需要足夠的凝固力。" },
 
-  { id:"bananabread", name:"香蕉蛋糕", keywords:["香蕉蛋糕","banana bread"],
+  { id:"bananabread", name:"香蕉蛋糕", difficulty:"簡單", category:"bread", panSize:"1個長條蛋糕模（約21×9×6cm）", keywords:["香蕉蛋糕","banana bread"],
     yield:"1個長條蛋糕", temp:"175°C", time:"50-55分鐘",
     equipment:["長條蛋糕模","攪拌盆","叉子","刮刀"],
     ingredients:[{name:"熟透香蕉（去皮）",amount:300,unit:"g"},{name:"無鹽黃油（融化）",amount:100,unit:"g"},{name:"細砂糖",amount:120,unit:"g"},{name:"全蛋",amount:2,unit:"顆"},{name:"低筋麵粉",amount:250,unit:"g"},{name:"小蘇打粉",amount:5,unit:"g"},{name:"鹽",amount:2,unit:"g"}],
-    steps:["香蕉用叉子壓成泥。","加入融化黃油、糖、蛋拌勻。","篩入麵粉、小蘇打粉、鹽，輕拌至無乾粉即可，不要過度攪拌。","倒入模具，175°C烤50-55分鐘，竹籤插入不沾即可。"],
+    steps:["熟透香蕉去皮放入大碗，用叉子壓成細緻香蕉泥（帶一點小顆粒口感也可以）。","加入融化放涼的黃油、細砂糖與全蛋，用打蛋器攪拌均勻成濕潤的香蕉糊。","低筋麵粉、小蘇打粉與鹽一同過篩加入，用刮刀以切拌方式輕輕拌至看不到乾粉即可，切勿過度攪拌，以免麵粉出筋讓蛋糕變硬。","倒入鋪好烘焙紙的長條蛋糕模中，抹平表面，輕敲模具震出大氣泡。","放入預熱175°C的烤箱，烘烤50-55分鐘，至表面深金黃色、竹籤插入中心拔出不沾黏即可出爐，放涼後脫模切片。"],
     tip:"香蕉越熟（表皮帶黑斑）甜度與香氣越足，是降低用糖量的好方法。" },
 
-  { id:"pancake", name:"鬆餅", keywords:["鬆餅","pancake"],
+  { id:"pancake", name:"鬆餅", difficulty:"簡單", category:"bread", keywords:["鬆餅","pancake"],
     yield:"約8片（直徑10cm）", temp:"平底鍋中火", time:"每片約2-3分鐘",
     equipment:["平底鍋","打蛋器","刮刀","量杯"],
     ingredients:[{name:"低筋麵粉",amount:250,unit:"g"},{name:"泡打粉",amount:10,unit:"g"},{name:"鹽",amount:2,unit:"g"},{name:"細砂糖",amount:30,unit:"g"},{name:"全蛋",amount:2,unit:"顆"},{name:"牛奶",amount:250,unit:"ml"},{name:"融化黃油",amount:30,unit:"g"}],
-    steps:["麵粉、泡打粉、鹽、糖混合過篩。","蛋、牛奶、融化黃油攪打均勻。","將濕料倒入乾料中，輕拌至剛好混合，有些顆粒沒關係。","平底鍋小火預熱，刷一層薄油，倒入約60ml麵糊。","表面出現氣泡且邊緣定型時翻面，煎至兩面金黃即可。"],
+    steps:["低筋麵粉、泡打粉、鹽與細砂糖一同過篩到大盆中混合均勻。","另取一碗，將蛋、牛奶與融化放涼的黃油攪打均勻成濕料。","將濕料一次倒入乾粉中，用打蛋器或刮刀輕拌至剛好混合即可，麵糊有些顆粒沒關係，過度攪拌會讓鬆餅變得扎實不鬆軟。","麵糊靜置10分鐘讓筋性鬆弛。平底鍋開小火預熱，用刷子刷上一層薄薄的油，倒入約60ml麵糊，輕輕搖晃鍋子使麵糊呈圓形攤平。","煎至表面出現密集氣泡、邊緣明顯定型不再流動時翻面，續煎至兩面金黃即可起鍋，重複煎完剩餘麵糊。"],
     tip:"麵糊靜置10分鐘讓筋性鬆弛，煎出來會更鬆軟。" },
 
-  { id:"tiramisu_classic", name:"正統義式提拉米蘇", keywords:["提拉米蘇","tiramisu","免烤","義式經典"],
+  { id:"tiramisu_classic", name:"正統義式提拉米蘇", difficulty:"簡單", category:"nobake", keywords:["提拉米蘇","tiramisu","免烤","義式經典"],
     yield:"4人份", temp:"免烤", time:"冷藏至少4小時",
     equipment:["打蛋器","鋼盆x2","刷子","小篩子","容器"],
     ingredients:[{name:"馬斯卡邦起司（室溫）",amount:250,unit:"g"},{name:"雞蛋",amount:2,unit:"顆"},{name:"幼砂糖",amount:40,unit:"g"},{name:"濃縮咖啡",amount:25,unit:"g"},{name:"馬沙拉酒",amount:40,unit:"g"},{name:"義大利手指餅乾",amount:8,unit:"塊"},{name:"鹽",amount:0,unit:"少許"},{name:"無糖純可可粉",amount:0,unit:"適量"}],
     steps:["蛋白與蛋黃分開置於不同鋼盆，濃縮咖啡與馬沙拉酒混合備用。","蛋白加一小撮鹽打發至挺立無光澤狀。","蛋黃加幼砂糖打至顏色變淺、質地濃稠如優格狀。","加入室溫馬斯卡邦起司，慢速拌勻至光滑無顆粒。","將蛋白霜倒入起司蛋黃糊中，刮刀輕拌混合，避免消泡。","容器底部鋪一層手指餅乾，刷上咖啡酒液（不可浸泡過久）。","倒入起司糊抹平，重複鋪第二層餅乾與起司糊。","表面均勻篩上可可粉，冷藏至少4小時（或冷藏過夜）後享用。"],
     tip:"可用Rum、Kahlua或Brandy替代馬沙拉酒；傳統作法不含鮮奶油與吉利丁，口感更輕盈濕潤。" },
 
-  { id:"souffle_lemon", name:"檸檬舒芙蕾", keywords:["舒芙蕾","souffle","檸檬","法式甜點"],
+  { id:"souffle_lemon", name:"檸檬舒芙蕾", difficulty:"中等", category:"souffle", panSize:"4個10盎司舒芙蕾烤模（直徑約9-10cm）", keywords:["舒芙蕾","souffle","檸檬","法式甜點"],
     yield:"4個（10盎司模具）", temp:"190°C", time:"12-14分鐘",
     equipment:["舒芙蕾烤模x4","打蛋器","中型鍋","刮刀","保鮮膜"],
     ingredients:[{name:"無鹽奶油（室溫，另備塗模用）",amount:3,unit:"大匙"},{name:"細砂糖（另備塗模用）",amount:3,unit:"大匙"},{name:"蛋黃",amount:2,unit:"顆"},{name:"蛋白（室溫）",amount:5,unit:"顆"},{name:"玉米粉",amount:1.5,unit:"大匙"},{name:"溫牛奶",amount:0.33,unit:"杯"},{name:"新鮮檸檬汁",amount:0.25,unit:"杯"},{name:"檸檬皮屑",amount:1.5,unit:"小匙"},{name:"香草精",amount:1.5,unit:"小匙"},{name:"塔塔粉",amount:0.5,unit:"小匙"},{name:"鹽",amount:0,unit:"一撮"},{name:"糖粉",amount:0,unit:"裝飾用"}],
     steps:["烤箱預熱190°C。模具內壁塗軟化奶油、灑細砂糖防黏，冷藏5-10分鐘至奶油固化。","蛋黃與3大匙糖攪拌至濃稠變白，拌入玉米粉，緩緩倒入一半溫牛奶拌勻。","倒入鍋中加剩餘溫牛奶，中小火加熱攪拌5-6分鐘至濃稠。","離火拌入奶油、檸檬汁、檸檬皮屑與香草精，表面蓋保鮮膜室溫靜置15分鐘冷卻。","蛋白、塔塔粉、鹽打發，分次加1大匙糖，打至堅挺倒扣不滑落。","取1/3蛋白霜拌入檸檬蛋黃糊，再分2次加入剩餘蛋白霜切拌均勻。","麵糊倒入冷藏好的模具抹平，邊緣沾黏處用紙巾擦淨。","烤12-14分鐘至膨脹呈金黃色，出爐撒糖粉立即享用。"],
     tip:"蛋白打發盆必須無油無水，模具防黏處理要徹底冷藏定型，出爐後會迅速消塌，須趁熱立刻上桌。" },
 
-  { id:"marble_angel", name:"大理石天使蛋糕", keywords:["天使蛋糕","angel cake","大理石蛋糕","乳沫類蛋糕"],
+  { id:"marble_angel", name:"大理石天使蛋糕", difficulty:"中等", category:"cake", panSize:"6吋活動模 x6（直徑約15cm）", keywords:["天使蛋糕","angel cake","大理石蛋糕","乳沫類蛋糕"],
     yield:"6個6吋活動模（每個約320g）", temp:"180-200°C", time:"約20分鐘",
     equipment:["6吋活動模x6","攪拌缸","擠花袋（不加花嘴）","刮刀","篩網"],
     ingredients:[{name:"桔子水",amount:286,unit:"g"},{name:"鹽",amount:4,unit:"g"},{name:"沙拉油",amount:151,unit:"g"},{name:"低筋麵粉",amount:337,unit:"g"},{name:"發粉",amount:15,unit:"g"},{name:"蛋白",amount:969,unit:"g"},{name:"塔塔粉",amount:43,unit:"g"},{name:"細砂糖",amount:328,unit:"g"},{name:"巧克力醬",amount:0,unit:"適量"}],
     steps:["低筋麵粉與發粉過篩備用。","桔子水、鹽、沙拉油拌勻，加入過篩的麵粉與發粉拌成無粉粒的蛋黃麵糊。","蛋白與塔塔粉打至濕性發泡，分次加糖打至乾性發泡前夕（尖峰呈鉤狀）。","取1/3蛋白糊加入蛋黃麵糊拌勻，再倒回剩餘蛋白糊輕柔拌勻。","加入巧克力醬，用刮刀稍微拌1-2下做出大理石紋（勿拌勻）。","裝入擠花袋，均勻擠入6個模具（每個約320g）。","180-200°C烤約7分鐘上色後調頭，轉溫續烤13分鐘（共20分鐘），出爐倒扣冷卻。"],
     tip:"蛋白打發狀態與切拌力道是大理石紋路成敗關鍵，過度攪拌會讓紋路消失。" },
 
-  { id:"ketobrownie", name:"低醣生酮布朗尼", keywords:["生酮","低醣","布朗尼","keto brownie"],
+  { id:"ketobrownie", name:"低醣生酮布朗尼", difficulty:"簡單", category:"cake", panSize:"8吋方形模或1個長條模（約20×20cm）", keywords:["生酮","低醣","布朗尼","keto brownie"],
     yield:"1個長條模或方形模", temp:"170°C", time:"約30分鐘",
     equipment:["長條模或方形模","隔水加熱鍋","打蛋器","刮刀","烘焙紙"],
     ingredients:[{name:"雞蛋",amount:3,unit:"顆"},{name:"杏仁粉",amount:80,unit:"g"},{name:"洋車前子粉",amount:2,unit:"大匙"},{name:"無糖純可可粉",amount:25,unit:"g"},{name:"甜菊糖",amount:30,unit:"g"},{name:"海鹽",amount:0.25,unit:"茶匙"},{name:"小蘇打粉",amount:1,unit:"茶匙"},{name:"無糖豆漿",amount:100,unit:"g"},{name:"無糖黑巧克力（70%以上）",amount:100,unit:"g"},{name:"無鹽奶油",amount:50,unit:"g"},{name:"核桃碎",amount:40,unit:"g"}],
-    steps:["無鹽奶油隔水融化，放至微溫備用。","雞蛋打散，加入融化奶油與無糖豆漿拌勻。","加入杏仁粉、可可粉、洋車前子粉、甜菊糖、海鹽、小蘇打粉，攪拌至滑順無結塊。","黑巧克力隔水融化後倒入麵糊拌勻。","拌入核桃碎，倒入鋪烘焙紙的模具抹平。","170°C烤約30分鐘，放涼後切塊。"],
+    steps:["無鹽奶油放入耐熱碗中，隔水加熱至完全融化，放至微溫備用。","雞蛋打入大盆中攪散，加入融化奶油與無糖豆漿，用打蛋器攪拌均勻。","加入杏仁粉、無糖可可粉、洋車前子粉、甜菊糖、海鹽與小蘇打粉，用刮刀攪拌至麵糊滑順、完全沒有結塊。","黑巧克力隔水融化後，緩緩倒入麵糊中，用刮刀或打蛋器攪拌均勻成有光澤的巧克力麵糊。","拌入核桃碎，將麵糊倒入鋪有烘焙紙的模具中，用刮刀抹平表面。","放入預熱170°C的烤箱，烘烤約30分鐘，至表面定型、竹籤插入中心帶一點濕潤屑粒（不是液態）即可出爐，放涼後切塊，質地濕潤扎實。"],
     tip:"以杏仁粉與洋車前子粉取代麵粉，適合低醣/生酮飲食；甜菊糖可依個人甜度喜好增減。" },
 
-  { id:"sugarfree_banana", name:"無糖熟香蕉杏仁蛋糕", keywords:["香蕉蛋糕","無糖","低醣","banana cake"],
+  { id:"sugarfree_banana", name:"無糖熟香蕉杏仁蛋糕", difficulty:"簡單", category:"bread", panSize:"1個長條蛋糕模（約21×9×6cm）或標準馬芬模", keywords:["香蕉蛋糕","無糖","低醣","banana cake"],
     yield:"1個長條蛋糕模或多個馬芬杯", temp:"170°C", time:"約30分鐘",
     equipment:["長條蛋糕模或馬芬模","打蛋器","刮刀","烘焙紙"],
     ingredients:[{name:"雞蛋",amount:3,unit:"顆"},{name:"熟香蕉（中型，帶黑斑為佳）",amount:3,unit:"根"},{name:"杏仁粉",amount:180,unit:"g"},{name:"赤藻糖醇",amount:50,unit:"g"},{name:"肉桂粉",amount:1,unit:"茶匙"},{name:"海鹽",amount:0.25,unit:"茶匙"},{name:"小蘇打粉",amount:1,unit:"茶匙"}],
-    steps:["香蕉壓成均勻香蕉泥。","雞蛋打入大盆中攪散。","加入赤藻糖醇、小蘇打粉、海鹽、肉桂粉與杏仁粉，攪拌均勻。","加入香蕉泥輕輕拌勻。","倒入鋪烘焙紙的模具（或分裝馬芬杯）約8分滿。","170°C烤約30分鐘，竹籤插入不沾即可出爐。"],
+    steps:["熟香蕉去皮放入碗中，用叉子壓成均勻細緻的香蕉泥。","雞蛋打入大盆中，用打蛋器攪散均勻。","加入赤藻糖醇、小蘇打粉、海鹽、肉桂粉與杏仁粉，攪拌至完全均勻無顆粒。","將香蕉泥倒入麵糊中，用刮刀輕輕拌勻，避免過度攪拌。","將麵糊倒入鋪好烘焙紙的長條蛋糕模（或分裝至馬芬杯）中，約8分滿。","放入預熱170°C的烤箱，烘烤約30分鐘，至表面金黃、竹籤插入中心拔出不沾黏即可出爐，放涼後脫模。"],
     tip:"選用表皮帶黑斑的過熟香蕉香氣最濃，可依甜度自行酌減赤藻糖醇用量。" },
 
-  { id:"lowcarb_pannacotta", name:"低醣義式鮮奶酪", keywords:["奶酪","panna cotta","低醣","免烤"],
+  { id:"lowcarb_pannacotta", name:"低醣義式鮮奶酪", difficulty:"簡單", category:"nobake", keywords:["奶酪","panna cotta","低醣","免烤"],
     yield:"4-6杯", temp:"免烤", time:"冷藏至少4小時",
     equipment:["小鍋","攪拌盆","玻璃杯","篩網"],
     ingredients:[{name:"動物性鮮奶油",amount:300,unit:"g"},{name:"新鮮牛奶",amount:0,unit:"適量"},{name:"羅漢果糖",amount:30,unit:"g"},{name:"吉利丁粉",amount:4,unit:"g"},{name:"冷水",amount:25,unit:"g"}],
-    steps:["吉利丁粉撒入冷開水中混合，靜置10分鐘吸水膨脹。","隔水加熱使吉利丁化為清澈透明液體。","牛奶與羅漢果糖小火加熱至糖融化（不可煮沸）。","加入融化吉利丁液攪拌均勻。","倒入動物性鮮奶油徹底拌勻。","過篩後分裝至玻璃杯，冷藏至少4小時至凝固。"],
+    steps:["將吉利丁粉均勻撒入冷開水中混合，靜置10分鐘讓其完全吸水膨脹。","把吸水膨脹的吉利丁液隔水加熱，攪拌至化為清澈無顆粒的透明液體。","新鮮牛奶與羅漢果糖放入小鍋中，以小火加熱攪拌至糖完全融化，微溫即可，切勿煮沸。","將融化的吉利丁液倒入溫牛奶中，充分攪拌均勻至完全融合。","倒入動物性鮮奶油，徹底攪拌均勻成滑順的奶酪液。","將奶酪液過篩一次（口感更細緻），分裝倒入玻璃杯中，放入冰箱冷藏至少4小時至完全凝固即可享用。"],
     tip:"吉利丁粉需先泡發完全吸水再隔水融化，奶液不可煮沸以免影響凝固口感。" },
 
-  { id:"pb_oat_cookies", name:"無糖花生醬燕麥酥餅", keywords:["花生醬","燕麥","餅乾","高纖點心"],
+  { id:"pb_oat_cookies", name:"無糖花生醬燕麥酥餅", difficulty:"簡單", category:"cookie", keywords:["花生醬","燕麥","餅乾","高纖點心"],
     yield:"約12-15片", temp:"180°C", time:"約15分鐘",
     equipment:["鋼盆","木勺或刮刀","烤盤","烘焙紙"],
     ingredients:[{name:"雞蛋",amount:1,unit:"顆"},{name:"無糖花生醬",amount:100,unit:"g"},{name:"傳統整粒燕麥片",amount:50,unit:"g"},{name:"椰子細粉",amount:50,unit:"g"},{name:"蜂蜜或椰糖",amount:30,unit:"g"},{name:"鹽",amount:0.25,unit:"茶匙"}],
-    steps:["雞蛋打散，加入蜂蜜、花生醬與鹽攪拌至均勻黏稠。","加入椰子細粉、燕麥片，翻壓拌勻至無乾粉顆粒。","分割成小球（約貢丸大小），排於鋪烘焙紙的烤盤上，隔烘焙紙壓扁至厚度一致。","180°C烤約15分鐘至邊緣金黃酥脆，放涼後即香脆。"],
+    steps:["雞蛋打入鋼盆中攪散，加入蜂蜜、無糖花生醬與鹽，用打蛋器或木勺用力攪拌至均勻黏稠。","加入椰子細粉與傳統整粒燕麥片，改用刮刀或手徹底翻壓拌勻，直至麵團均勻、看不見乾粉顆粒。","將麵團分割成大小一致的小球（約貢丸大小），均勻排放在鋪有烘焙紙的烤盤上。","隔著一張烘焙紙，用手掌或杯底將每顆小麵糰球壓扁，使厚度保持均勻一致（厚薄不一會導致受熱不均）。","放入預熱180°C的烤箱，烘烤約15分鐘，至邊緣呈現金黃酥脆色澤即可出爐，取出徹底放涼後會變得更加香脆。"],
     tip:"可用生酮代糖取代蜂蜜或椰糖；壓扁麵團厚度需一致才能受熱均勻。" },
 
-  { id:"cookie_egg_butter", name:"原味雞蛋奶油手工餅乾", keywords:["手工餅乾","奶油餅乾","基礎入門"],
+  { id:"cookie_egg_butter", name:"原味雞蛋奶油手工餅乾", difficulty:"簡單", category:"cookie", keywords:["手工餅乾","奶油餅乾","基礎入門"],
     yield:"約15-20片", temp:"180°C", time:"約15分鐘",
     equipment:["鋼盆","打蛋器","擀麵棍","烤盤","烘焙紙"],
     ingredients:[{name:"無鹽奶油（室溫）",amount:120,unit:"g"},{name:"細砂糖",amount:60,unit:"g"},{name:"雞蛋液",amount:50,unit:"g"},{name:"低筋麵粉",amount:200,unit:"g"}],
-    steps:["奶油加細砂糖打發至顏色變白、質地蓬鬆。","蛋液分2-3次加入，每次攪打均勻再加下一次。","篩入低筋麵粉，輕柔拌至無乾粉的均勻麵團。","麵團分割揉成小球，排於鋪烘焙紙的烤盤上。","隔烘焙紙壓扁至厚度約0.5公分。","180°C烤約15分鐘至邊緣微金黃，放涼後食用。"],
+    steps:["無鹽奶油提前回溫軟化，放入鋼盆中加入細砂糖，用打蛋器（手持或電動皆可）充分攪打，直到奶油顏色逐漸變白、質地呈蓬鬆羽毛狀。","將打散的雞蛋液分2-3次緩緩加入奶油中，每次加入後皆需充分攪打均勻，確保蛋液被奶油完全吸收，避免油水分離。","低筋麵粉過篩倒入盆中，改用刮刀或直接用手，輕柔翻拌混合，直至混合成不見乾粉的均勻麵團。","將拌勻的麵團分割，揉成大小均勻的小麵糰球，整齊放置於鋪好烘焙紙的烤盤上。","在小麵糰球上蓋上一張烘焙紙（或保鮮膜），隔著烘焙紙用擀麵棍或平底器皿，將小麵糰均勻壓成厚度約0.5公分的餅乾圓片，厚度一致可確保受熱均勻不烤焦。","送入預熱至180°C的烤箱，烘烤約15分鐘，觀察餅乾邊緣變微黃金黃色即可出爐，置於架上完全冷卻後食用。"],
     tip:"奶油需打發至顏色變白呈蓬鬆羽毛狀，分次加蛋避免油水分離。" },
 
-  { id:"cookie_choc_almond", name:"巧克力杏仁手工餅乾", keywords:["手工餅乾","巧克力餅乾","杏仁","冷凍切片"],
+  { id:"cookie_choc_almond", name:"巧克力杏仁手工餅乾", difficulty:"簡單", category:"cookie", keywords:["手工餅乾","巧克力餅乾","杏仁","冷凍切片"],
     yield:"約25-30片", temp:"180°C", time:"約20分鐘",
     equipment:["鋼盆","打蛋器","篩網","保鮮膜","冰箱冷凍"],
     ingredients:[{name:"無鹽奶油（室溫）",amount:230,unit:"g"},{name:"細砂糖",amount:190,unit:"g"},{name:"雞蛋液",amount:76,unit:"g"},{name:"可可粉",amount:46,unit:"g"},{name:"低筋麵粉",amount:385,unit:"g"},{name:"杏仁條或杏仁片",amount:76,unit:"g"}],
     steps:["奶油與細砂糖混合打發至顏色變淺、質地蓬鬆。","蛋液分2-3次加入，每次拌勻再加下一次。","低筋麵粉與可可粉一同過篩，輕柔壓拌至無粉粒。","加入杏仁條或杏仁片翻拌均勻。","麵團分兩份，揉成長條柱狀，用烘焙紙包裹冷凍1小時硬化。","取出切成厚度0.5公分薄片，排於烤盤上。","180°C烤約20分鐘，放涼後食用。"],
     tip:"切片厚度需一致，否則烘烤時容易部分不熟、部分烤焦。" },
 
-  { id:"cookie_cranberry", name:"經典蔓越莓手工餅乾", keywords:["手工餅乾","蔓越莓","冷凍切片"],
+  { id:"cookie_cranberry", name:"經典蔓越莓手工餅乾", difficulty:"簡單", category:"cookie", keywords:["手工餅乾","蔓越莓","冷凍切片"],
     yield:"約20-25片", temp:"180°C", time:"約20分鐘",
     equipment:["鋼盆","打蛋器","保鮮膜","冰箱冷凍","烤盤"],
     ingredients:[{name:"低筋麵粉",amount:230,unit:"g"},{name:"雞蛋液",amount:50,unit:"g"},{name:"蔓越莓乾",amount:90,unit:"g"},{name:"無鹽奶油（室溫）",amount:120,unit:"g"},{name:"糖粉",amount:60,unit:"g"},{name:"動物性鮮奶油",amount:10,unit:"g"}],
     steps:["奶油加糖粉打發至顏色變白、質地輕盈。","蛋液分2-3次加入，攪打均勻至完全吸收。","倒入動物性鮮奶油快速拌勻。","篩入低筋麵粉，拌至無乾粉顆粒。","蔓越莓乾切碎拌入麵團均勻分布。","麵團揉成長條柱狀，用烘焙紙包裹冷凍1小時至硬化。","取出切成厚度均勻的0.5公分薄片，排於烤盤上。","180°C烤約20分鐘，放涼後即完成。"],
-    tip:"蔓越莓乾需切碎才能均勻分布；冷凍切片厚度一致是受熱均勻的關鍵。" }
+    tip:"蔓越莓乾需切碎才能均勻分布；冷凍切片厚度一致是受熱均勻的關鍵。" },
+
+  { id:"oreo_cheesecake", name:"OREO免烤箱脆脆生乳酪蛋糕", difficulty:"簡單", category:"cake", panSize:"6吋圓形活動模（直徑約15cm）", keywords:["OREO","免烤乳酪蛋糕","生乳酪"],
+    yield:"6吋圓模", temp:"免烤（冷凍定型）", time:"冷凍至少4小時",
+    equipment:["6吋活動模","夾鏈袋","電動打蛋器","湯匙","烘焙紙"],
+    ingredients:[{name:"OREO夾心餅乾",amount:2,unit:"盒"},{name:"動物性鮮奶油",amount:400,unit:"ml"},{name:"奶油乳酪",amount:400,unit:"ml"},{name:"無鹽奶油",amount:20,unit:"g"},{name:"香草精",amount:0,unit:"少許"},{name:"細砂糖",amount:70,unit:"g"}],
+    steps:["取24片OREO（含夾心）放入夾鏈袋中，用擀麵棍敲打成粉末，可刻意保留約1/5的碎塊顆粒以增加咬感。","無鹽奶油隔水或微波融化成液態，倒入餅乾粉中，用湯匙充分攪拌至每一粒餅乾屑都均勻沾裹奶油、呈濕潤鬆散的濕沙狀。","模具底部與內壁鋪好烘焙紙，將奶油餅乾屑倒入，用湯匙背面或平底杯底用力壓實、壓平整個底部，確保沒有空隙，送冷凍庫冷凍20分鐘至完全硬化定型。","另取大盆，將回溫軟化的奶油乳酪與動物性鮮奶油加入，先用刮刀稍微拌合，再用電動打蛋器低速攪打至完全融合無顆粒。","加入細砂糖與香草精，繼續低速攪打1-2分鐘，至整體呈現黏稠、有光澤的乳霜狀（提起攪拌頭會留下緩慢消失的痕跡）。","取8-10片OREO用手剝成粗顆粒（勿剝太碎，保留口感層次），輕輕拌入乳酪糊中混合均勻。","取出冷凍硬化的餅乾底，將乳酪糊緩緩倒入，用刮刀或抹刀將表面抹平整。","表面均勻篩灑少許餅乾粉裝飾，送入冷凍庫冷凍至少4小時（建議冷凍過夜更扎實），取出後用熱毛巾稍微包覆模具外壁幫助脫模，切塊享用。"],
+    tip:"完全不用凝固劑，靠奶油乳酪高脂肪在冷凍下物理凝固；融化奶油冷凍結晶能讓餅乾底扎實不散。" },
+
+  { id:"creme_caramel", name:"0失敗懶人焦糖布丁", difficulty:"簡單", category:"souffle", panSize:"4-6個布丁杯（每個約150ml）", keywords:["焦糖布丁","creme caramel","水浴法"],
+    yield:"約4-6杯", temp:"120°C（水浴法）", time:"40分鐘",
+    equipment:["小鍋","布丁杯","細網篩","烤盤（水浴用）"],
+    ingredients:[{name:"新鮮牛奶",amount:400,unit:"ml"},{name:"動物性鮮奶油",amount:280,unit:"ml"},{name:"蛋黃",amount:3,unit:"顆"},{name:"全蛋",amount:1,unit:"顆"},{name:"砂糖（布丁液用）",amount:50,unit:"g"},{name:"二號砂糖（焦糖用）",amount:100,unit:"g"}],
+    steps:["將100g二號砂糖倒入小鍋中，開小火慢慢熬煮，過程中只能輕輕搖晃鍋子讓糖均勻受熱，絕對不可用湯匙攪拌，以免糖結晶砂化失敗。","耐心等待糖完全溶解並轉為深琥珀色（接近冒煙但不焦黑），立刻離火，小心倒入約60g熱水（會劇烈冒泡，注意燙傷），快速搖晃混合均勻成焦糖液。","趁焦糖液還流動，立刻平均倒入布丁杯底部，薄薄一層鋪平即可，靜置備用。","大碗中將牛奶與動物性鮮奶油倒入混合，加入50g砂糖，攪拌至糖完全融化、液體滑順無顆粒。","另取一碗，將蛋黃與全蛋打散均勻（不要打出太多氣泡），緩緩倒入剛才的牛奶液中，輕輕攪拌均勻。","將布丁液用細網篩過篩2次，目的是濾掉氣泡與未打散的蛋筋，確保烤出來質地細緻無孔洞。","將布丁液緩緩倒入已鋪好焦糖的布丁杯中，約8分滿。","布丁杯放入烤盤，烤盤中注入熱水至布丁杯高度的一半，放入預熱120°C的烤箱中，水浴烘烤40分鐘，輕輕搖晃布丁杯邊緣微凝固、中心仍有點彈性晃動即可出爐。","出爐後放涼至室溫，再放入冰箱冷藏至少3小時，食用前用小刀沿邊緣劃一圈，倒扣脫模即可。"],
+    tip:"低溫水浴能讓布丁在接近100°C的蒸氣環境慢慢凝固，避免蛋白質過熱產生蜂巢氣孔。" },
+
+  { id:"butter_cookies_simple", name:"材料極簡奶油餅乾", difficulty:"簡單", category:"cookie", keywords:["奶油餅乾","壓模餅乾","四樣材料"],
+    yield:"依模具大小而定", temp:"190°C", time:"15-20分鐘",
+    equipment:["打蛋器","刮刀","擀麵棍","餅乾模具","烤盤"],
+    ingredients:[{name:"奶油（室溫）",amount:100,unit:"g"},{name:"低筋麵粉",amount:200,unit:"g"},{name:"新鮮牛奶",amount:30,unit:"g"},{name:"細砂糖",amount:20,unit:"g"}],
+    steps:["奶油提前置於室溫回溫軟化（手指輕壓會留下凹痕但不融化的程度），放入大碗中用打蛋器攪拌至滑順的乳霜狀態。","細砂糖過篩後分2-3次加入奶油中，每次都攪拌均勻再加下一次，讓糖充分融入。","倒入牛奶，再篩入低筋麵粉，改用橡皮刮刀以切拌、按壓的方式混合，直到麵團完全看不到乾粉、也沒有顆粒為止（勿過度搓揉以免出筋變硬）。","將麵團整理成團，用保鮮膜包好壓扁，放入冰箱冷藏至少1小時，讓奶油重新固化、麵團更好操作。","取出麵團，撒少許手粉，用擀麵棍擀平至0.3-0.4公分均勻厚度，用喜歡的模具壓出造型，排列在鋪好烘焙紙的烤盤上（留一點間距）。","放入預熱190°C的烤箱中，烘烤15-20分鐘，至邊緣微微金黃上色即可出爐，放涼後會變得酥脆。"],
+    tip:"麵團冷藏能讓液態奶油再次固化結晶，降低黏手度，壓模時不易變形收縮。" },
+
+  { id:"american_choc_cookies", name:"美式外酥內軟巧克力軟餅乾", difficulty:"簡單", category:"cookie", keywords:["美式餅乾","巧克力軟餅乾","chewy cookie"],
+    yield:"依分割大小而定", temp:"160°C", time:"20-30分鐘",
+    equipment:["鋼盆","打蛋器","刮刀","烤盤","冰箱冷藏"],
+    ingredients:[{name:"巧克力豆",amount:150,unit:"g"},{name:"黑糖",amount:90,unit:"g"},{name:"全蛋",amount:1,unit:"顆"},{name:"無鹽奶油",amount:120,unit:"g"},{name:"中筋麵粉",amount:180,unit:"g"},{name:"小蘇打粉",amount:7,unit:"g"},{name:"鹽",amount:3,unit:"g"},{name:"香草精",amount:0,unit:"少許"}],
+    steps:["將無鹽奶油放入鍋中以小火加熱至完全融化（不需煮滾），離火稍微放涼。","趁奶油還溫熱時倒入黑糖，用打蛋器攪拌至黑糖完全溶解、看不到顆粒。","打入一顆全蛋，用力攪拌至蛋液與奶油糖液完全乳化結合，呈現稠厚、有光澤的質地（這步驟拌不勻會影響成品口感，務必拌到均勻）。","倒入過篩的中筋麵粉、小蘇打粉、鹽與香草精，用刮刀以切拌方式混合至完全看不到乾粉顆粒。","將巧克力豆均勻拌入麵糊中，用手或湯匙等分成數個小麵團，放入冰箱冷藏發酵30分鐘，讓奶油重新固化、麵團風味也更融合。","取出冷藏麵團，直接排入烤盤，中間預留較大間隙（烘烤時麵團會明顯塌陷攤平），送入預熱160°C的烤箱，烘烤20-30分鐘，邊緣略硬、中心仍微軟即可出爐，放涼後外殼會變脆、中心保持濕潤。"],
+    tip:"黑糖弱酸性與小蘇打受熱中和釋放二氧化碳，形成外酥內濕潤Q黏的美式口感。" },
+
+  { id:"chocolate_fondant", name:"經典法式巧克力熔岩蛋糕", difficulty:"簡單", category:"cake", panSize:"4個熔岩蛋糕模（單個約180-200ml容量）", keywords:["熔岩蛋糕","巧克力流心","fondant"],
+    yield:"依模具數量而定", temp:"220°C", time:"8分鐘",
+    equipment:["隔水加熱鍋","打蛋器","刮刀","熔岩蛋糕模"],
+    ingredients:[{name:"低筋麵粉",amount:65,unit:"g"},{name:"黑巧克力",amount:150,unit:"g"},{name:"無鹽奶油",amount:125,unit:"g"},{name:"全蛋",amount:2,unit:"顆"},{name:"蛋黃",amount:2,unit:"顆"},{name:"細砂糖",amount:50,unit:"g"},{name:"鹽",amount:1,unit:"g"}],
+    steps:["將奶油與切碎的黑巧克力放入大碗中，隔水加熱（水溫控制在60°C以下，避免巧克力過熱出油分離），持續攪拌至完全融化成滑順巧克力液，離火放涼備用。","另取一盆，將全蛋、蛋黃、砂糖與鹽放入，用打蛋器攪拌至均勻散開（不需打發，拌勻即可）。","將蛋液緩慢、分次倒入放涼的巧克力糊中，每次都攪拌均勻再加下一次。","篩入低筋麵粉，用刮刀以輕柔的切拌方式拌至完全滑順、無粉粒的麵糊。","在模型內壁均勻塗抹一層融化奶油，再撒上薄薄一層麵粉（方便之後脫模），將巧克力麵糊倒入至8-9分滿。","烤箱確實預熱至220°C，將模具送入烘烤，精確計時8分鐘（時間是流心成敗關鍵，過久會全熟、過短會塌陷），時間到立刻取出。","稍微放涼1-2分鐘後小心倒扣脫模，撒上糖粉，趁熱立刻切開，即可看到滾燙流動的巧克力內餡。"],
+    tip:"高溫短時間是外殼定型、中心不熟成爆漿流心的關鍵，時間務必精準。" },
+
+  { id:"milk_snow_ice", name:"5分鐘快速親子鮮奶雪花冰", difficulty:"簡單", category:"nobake", keywords:["雪花冰","鮮奶冰","免烤甜點"],
+    yield:"依容器大小而定", temp:"免烤（冷凍）", time:"冷凍至少6小時",
+    equipment:["果汁機","製冰容器","刨冰機","細網篩"],
+    ingredients:[{name:"牛奶",amount:200,unit:"ml"},{name:"煉乳",amount:50,unit:"g"},{name:"動物性鮮奶油",amount:30,unit:"ml"},{name:"細砂糖",amount:10,unit:"g"},{name:"鹽",amount:2,unit:"g"}],
+    steps:["將牛奶、細砂糖、鹽、煉乳和動物性鮮奶油全部倒入果汁機中，高速攪拌約30秒，使所有液體與油脂完全混合乳化均勻（液體應呈現滑順無分層的狀態）。","用細網篩將打好的液體過篩一次，濾掉殘留的大氣泡，讓刨出來的冰口感更細緻。","倒入製冰容器或不鏽鋼盒中，蓋上蓋子或包保鮮膜，送入冷凍庫冷凍至少6小時，至完全結成堅硬冰磚（建議冷凍過夜更穩定）。","取出冰磚，用手持或電動刨冰機將其刨成輕盈如羽毛的雪花狀，立即盛盤，依喜好加上煉乳、果醬、新鮮水果粒等配料即可享用。"],
+    tip:"高乳脂與煉乳能打散冰結晶，加鹽糖降低冰點，刨出入口即化的雪花口感。" },
+
+  { id:"cranberry_scones_classic", name:"經典英式蔓越莓司康", difficulty:"簡單", category:"bread", keywords:["司康","scone","英式下午茶"],
+    yield:"依分割大小而定", temp:"180°C", time:"20分鐘",
+    equipment:["篩網","搓粉板","刮刀","烤盤","冰箱冷藏"],
+    ingredients:[{name:"低筋麵粉",amount:225,unit:"g"},{name:"無鹽奶油（冰硬）",amount:50,unit:"g"},{name:"新鮮牛奶",amount:120,unit:"ml"},{name:"細砂糖",amount:30,unit:"g"},{name:"鹽",amount:2,unit:"g"},{name:"泡打粉",amount:8,unit:"g"},{name:"蔓越莓乾",amount:0,unit:"適量"}],
+    steps:["低筋麵粉、泡打粉、細砂糖與鹽一同過篩倒入大盆中，用打蛋器稍微混合均勻。","將冰硬的無鹽奶油切成約1公分小塊，放入乾粉中，用手指或搓粉板快速搓揉切拌，讓奶油與麵粉結合成均勻的小沙粒狀（動作要快，避免手溫融化奶油）。","緩緩倒入冰牛奶，改用刮刀輕輕翻拌混合，拌到麵團呈現光滑、看不到粉粒即可，切勿用力揉捏，以免出筋讓口感變硬。","將蔓越莓乾均勻拌入麵團中，輕輕揉成一個小球，用保鮮膜包好，放入冰箱冷藏低溫發酵30分鐘。","取出麵團，整形成約2-3公分厚的圓餅或用刀切成三角形，稍微壓扁，送入預熱180°C的烤箱，烘烤20分鐘，至表面金黃、側邊明顯裂開即可出爐。"],
+    tip:"奶油需保持冰冷顆粒狀，進爐受熱融化產生氣孔被泡打粉撐開，才有經典開裂結構。" },
+
+  { id:"lemon_pound_cake", name:"濕潤不乾檸檬磅蛋糕", difficulty:"簡單", category:"cake", panSize:"1個長條蛋糕模（約18×8×6cm）", keywords:["檸檬磅蛋糕","pound cake"],
+    yield:"1個長條蛋糕模", temp:"170°C→140-150°C", time:"40-50分鐘",
+    equipment:["長條蛋糕模","打蛋器","刮刀","檸檬刨絲器"],
+    ingredients:[{name:"低筋麵粉",amount:100,unit:"g"},{name:"無鹽奶油",amount:100,unit:"g"},{name:"全蛋",amount:2,unit:"顆"},{name:"細砂糖",amount:80,unit:"g"},{name:"泡打粉",amount:2,unit:"g"},{name:"新鮮檸檬",amount:1,unit:"顆"},{name:"糖粉",amount:40,unit:"g"}],
+    steps:["新鮮檸檬用刨絲器刨出檸檬皮絲（避開白色內膜，否則會苦），再將檸檬對切擠出檸檬汁備用。","軟化奶油放入大碗，加入2/3的檸檬皮絲與細砂糖，用打蛋器中高速打發至顏色泛白、體積膨鬆呈羽毛狀。","全蛋液打散，分3-4次緩慢倒入打發奶油中，每次都要快速攪打至完全吸收、不見油水分離，再加下一次。","低筋麵粉與泡打粉一起過篩加入，用刮刀切拌，再加入1-2湯匙檸檬汁，攪拌均勻至無顆粒、有光澤的麵糊。","倒入鋪好烘焙紙的長條模中抹平，包上保鮮膜放入冰箱冷藏30-40分鐘，讓奶油結構穩定。","放入預熱170°C的烤箱烘烤20-30分鐘，取出時表面應已微微上色，用刀在中間劃一條深線（幫助蒸氣釋放，烤出漂亮裂紋）。","將烤箱轉低溫140-150°C，放回續烤20分鐘，至竹籤插入中心不沾黏即可出爐，剩餘檸檬皮絲可撒在表面裝飾。"],
+    tip:"中間劃刀能引導蒸氣由此釋放，烤出漂亮的頂部裂紋。" },
+
+  { id:"cinnamon_rolls", name:"肉桂控最愛黑糖肉桂捲", difficulty:"中等", category:"bread", keywords:["肉桂捲","cinnamon roll","發酵麵包"],
+    yield:"依切段數量而定", temp:"180°C", time:"20分鐘",
+    equipment:["攪拌盆","擀麵棍","烤盤","保鮮膜"],
+    ingredients:[{name:"高筋麵粉",amount:300,unit:"g"},{name:"新鮮牛奶",amount:150,unit:"ml"},{name:"新鮮雞蛋",amount:1,unit:"顆"},{name:"無鹽奶油",amount:30,unit:"g"},{name:"速發酵母粉",amount:3,unit:"g"},{name:"細砂糖",amount:20,unit:"g"},{name:"鹽",amount:2,unit:"g"},{name:"黑糖粉（內餡）",amount:80,unit:"g"},{name:"肉桂粉（內餡）",amount:6,unit:"g"}],
+    steps:["雞蛋、細砂糖與牛奶放入盆中打散混合，篩入高筋麵粉，用刮刀或手揉成粗糙的麵團，蓋上保鮮膜在室溫靜置水合30分鐘，讓麵粉自然吸水產生部分麵筋。","將速發酵母粉溶於一小匙水中，倒入水合好的麵團，用手揉約10-15分鐘，至麵團表面光滑有彈性、能拉出薄而不易破的薄膜，放入容器蓋好，室溫發酵約1小時至膨脹為2倍大。","將黑糖粉與肉桂粉混合均勻備用。取出發酵好的麵團，輕拍排氣，擀成厚度約0.5公分的長方形麵皮。","在麵皮表面塗抹一層薄薄的軟化奶油，均勻撒上拌勻的黑糖肉桂粉，邊緣留約1公分不要撒到（方便黏合）。","從長邊將麵皮捲成紮實的圓柱狀，捲到底部用手指捏緊收口。用棉線或刀切成約2指寬的小段，切面朝上排入烤盤，間隔留一些空間。","蓋上保鮮膜，靜置二次發酵約30分鐘，至麵團明顯膨脹。放入預熱180°C的烤箱，烘烤20分鐘，至表面金黃即可出爐。"],
+    tip:"水合作用靜置能讓麵粉吸水形成麵筋網絡，省力又能鎖住水分讓組織濕潤有彈性。" },
+
+  { id:"salt_caramel_almond_tile", name:"鹽之花焦糖杏仁片", difficulty:"簡單", category:"cookie", keywords:["焦糖杏仁","瓦片","鹽之花"],
+    yield:"依鋪平大小而定", temp:"150°C（烤杏仁）", time:"10分鐘",
+    equipment:["烤盤","小鍋","刮刀","烘焙紙"],
+    ingredients:[{name:"杏仁片",amount:150,unit:"g"},{name:"鹽之花",amount:0,unit:"適量"},{name:"冷水",amount:10,unit:"g"},{name:"細砂糖",amount:70,unit:"g"},{name:"無鹽奶油",amount:25,unit:"g"}],
+    steps:["杏仁片平鋪在烤盤上，放入已預熱150°C的烤箱中烘烤10分鐘，中途取出翻拌一次避免烤焦，至表面微黃、散發堅果香氣即可取出備用。","將冷水與細砂糖倒入小鍋中，輕輕搖晃鍋子讓糖被水浸濕，開小火加熱（過程中切忌用湯匙等工具攪拌，以免糖結晶砂化失敗）。","待糖液完全溶解並開始沸騰，加入無鹽奶油，繼續小火熬煮，期間可輕搖鍋子幫助受熱均勻，煮至糖液轉為漂亮的琥珀褐色。","立刻倒入剛才烤香的杏仁片，快速翻拌讓每片杏仁均勻裹上焦糖，動作要快，隨即熄火（糖液冷卻速度很快）。","趁熱將焦糖杏仁片倒在烘焙紙上，用刮刀或抹刀盡量攤平、鋪成越薄越好的一層，表面均勻撒上適量鹽之花。","靜置於室溫直到完全冷卻硬化（約15-20分鐘），用手剝成喜歡的小塊，密封保存防潮。"],
+    tip:"不攪拌糖液能防止反砂，鹽之花的鹹與焦糖苦甜形成強烈對比。" },
+
+  { id:"creme_brulee_caramel", name:"經典焦糖烤布蕾", difficulty:"簡單", category:"souffle", panSize:"4個烤盅（每個約180ml）", keywords:["烤布蕾","creme brulee","焦糖"],
+    yield:"依烤盅數量而定", temp:"140°C（水浴法）", time:"40分鐘",
+    equipment:["烤盅","噴槍","細篩網","烤盤（水浴用）"],
+    ingredients:[{name:"動物性鮮奶油",amount:130,unit:"g"},{name:"鮮奶",amount:75,unit:"g"},{name:"蛋黃",amount:2,unit:"顆"},{name:"細砂糖",amount:30,unit:"g"},{name:"香草精",amount:1,unit:"茶匙"},{name:"細砂糖（表面焦糖用）",amount:0,unit:"適量"}],
+    steps:["將動物性鮮奶油、鮮奶與香草精放入鋼盆中，以小火加熱約3-4分鐘，過程中不斷攪拌防止燒焦，加熱至接近沸騰（鍋邊冒小泡）即可離火。","另取一鋼盆，將蛋黃與30g細砂糖放入，用打蛋器攪拌均勻（不需打發）。","將溫熱的牛奶液分多次、非常緩慢地倒入蛋黃液中，每倒一點就要快速攪拌，避免蛋黃因溫度過高而凝固結塊。","將混合好的布丁液用細網篩過篩一次，濾掉氣泡與蛋筋，讓烤出來的質地更細緻，倒入耐熱布丁盅中。","布丁盅放入烤盤，注入溫熱水至烤盅高度的一半以上，放入預熱140°C的烤箱中，烘烤約40分鐘，至輕輕搖晃中心仍有一點彈性晃動即可出爐。","放涼後輕輕搖晃確認沒有液態溢出，移入冰箱冷藏至少2小時。","食用前在布丁表面均勻撒上一層薄薄的細砂糖，用手持噴槍以畫圈方式將糖燒至融化、轉為金黃色，待焦糖冷卻硬化成脆殼後即可享用。"],
+    tip:"牛奶液不可高於70°C直接倒入蛋黃，否則蛋白質會瞬間變性結塊。" },
+
+  { id:"oreo_cheesecake_mini", name:"OREO脆脆生乳酪蛋糕（迷你版）", difficulty:"簡單", category:"nobake", panSize:"4吋迷你圓模或4個小布丁杯", keywords:["OREO","生乳酪","免烤甜點"],
+    yield:"依模具大小而定", temp:"免烤（冷凍定型）", time:"冷凍至硬化",
+    equipment:["小模具","打蛋器","湯匙","冰箱冷凍"],
+    ingredients:[{name:"OREO餅乾屑",amount:100,unit:"g"},{name:"OREO餅乾（乳酪糊用）",amount:5,unit:"片"},{name:"無鹽奶油",amount:30,unit:"g"},{name:"奶油乳酪",amount:120,unit:"g"},{name:"動物性鮮奶油",amount:150,unit:"g"},{name:"細砂糖",amount:30,unit:"g"}],
+    steps:["OREO餅乾屑與融化的無鹽奶油放入碗中，用湯匙充分混合拌勻，至每粒餅乾屑都均勻沾裹奶油呈濕沙狀。","將混合好的奶油餅乾屑平均鋪在模具底部，用湯匙背面壓實壓平，送入冷凍庫冷凍備用。","將奶油乳酪用手持打蛋器攪拌成滑順無顆粒的乳霜狀，分次加入動物性鮮奶油，邊加邊攪拌均勻，再倒入細砂糖攪拌至完全融合、質地濃稠。","取5-6片OREO用手剝成粗顆粒（保留口感不要剝太細），輕輕拌入乳酪糊中混合均勻。","取出冷凍庫中已硬化的模具，將乳酪糊倒入鋪平表面。送回冷凍庫，冷凍至完全凝固硬化後即可脫模享用。"],
+    tip:"低溫冷凍能讓融化奶油結晶收縮，牢牢鎖住餅乾底，避免乳酪糊滲漏。" },
+
+  { id:"lace_egg_roll", name:"簡單蕾絲蛋捲", difficulty:"簡單", category:"cookie", keywords:["蛋捲","蕾絲餅","平底鍋甜點"],
+    yield:"依擠出數量而定", temp:"150-170°C", time:"13-15分鐘",
+    equipment:["不沾平底鍋","擠花袋","篩網","筷子"],
+    ingredients:[{name:"無鹽奶油",amount:50,unit:"g"},{name:"細砂糖",amount:40,unit:"g"},{name:"低筋麵粉",amount:100,unit:"g"},{name:"新鮮雞蛋液",amount:150,unit:"g"}],
+    steps:["細砂糖倒入雞蛋液中，用打蛋器充分攪拌至糖完全溶解。","加入融化的液態奶油拌勻，再篩入低筋麵粉，攪拌至無顆粒的滑順麵糊。","將麵糊用細網過篩一次（讓質地更細緻），裝入塑膠袋或擠花袋中，在尖端剪一個極小的開口。","不沾平底鍋開極小火稍微預熱（全程不放任何油），手持袋子在鍋內快速畫出蕾絲圈圈線條，靜置約10秒讓水分蒸發。","趁餅皮還溫熱、邊緣微翹起時，用筷子配合手指快速將其捲起成筒狀，動作要俐落，放置一旁定型。","全部捲好後整齊排在烤盤上，放入已預熱150-170°C的烤箱中，烘烤13-15分鐘，至呈現均勻焦黃色、完全酥脆即可出爐，放涼後密封保存。"],
+    tip:"小火能讓水分快速蒸發，趁熱捲起利用澱粉的高溫延展性塑形。" },
+
+  { id:"longan_cupcake", name:"經典常溫桂圓蛋糕", difficulty:"簡單", category:"muffin", panSize:"6孔馬芬模（單孔直徑約7cm）", keywords:["桂圓蛋糕","杯子蛋糕","台式甜點"],
+    yield:"約6-8個杯子蛋糕", temp:"180°C", time:"25-30分鐘",
+    equipment:["小鍋","打蛋器","蛋糕紙杯","烤盤"],
+    ingredients:[{name:"雞蛋",amount:4,unit:"顆"},{name:"細砂糖",amount:100,unit:"g"},{name:"黑糖",amount:100,unit:"g"},{name:"低筋麵粉",amount:200,unit:"g"},{name:"無鹽奶油",amount:100,unit:"g"},{name:"桂圓肉",amount:150,unit:"g"},{name:"可爾必思",amount:35,unit:"ml"},{name:"泡打粉",amount:3,unit:"g"},{name:"核桃碎",amount:35,unit:"g"}],
+    steps:["將切細碎的桂圓肉與可爾必思放入小鍋中，以小火熬煮至微滾，關火後立即加入無鹽奶油，攪拌至奶油完全融化、與桂圓液混合均勻，靜置放涼備用。","全蛋4顆與細砂糖、過篩過的黑糖放入盆中，用打蛋器攪拌均勻（不需打發），加入泡打粉與過篩低筋麵粉，攪打至無顆粒的均勻麵糊。","將完全冷卻的桂圓奶油液倒入麵糊中，用刮刀拌勻至質地均勻有光澤。","將麵糊倒入蛋糕紙杯中，約8分滿，表面撒上切碎的核桃粒裝飾。","放入預熱180°C的烤箱中烘烤25-30分鐘，至表面金黃膨脹，用測針或竹籤插入中心拔出不沾黏麵糊即代表烤熟。"],
+    tip:"黑糖酸性與可爾必思乳酸結合泡打粉，受熱釋放氣體撐出濕潤蓬鬆的桂圓口感。" },
+
+  { id:"matcha_cocoa_scone", name:"爆漿抹茶可可司康", difficulty:"簡單", category:"bread", keywords:["抹茶司康","爆漿","可可"],
+    yield:"4個", temp:"180°C", time:"18-20分鐘",
+    equipment:["篩網","刮刀","冰箱冷藏","烤盤"],
+    ingredients:[{name:"中筋麵粉",amount:150,unit:"g"},{name:"無糖抹茶粉",amount:12,unit:"g"},{name:"冰無鹽奶油",amount:40,unit:"g"},{name:"泡打粉",amount:6,unit:"g"},{name:"牛奶",amount:65,unit:"ml"},{name:"海鹽",amount:1,unit:"g"},{name:"耐高溫黑巧克力塊",amount:60,unit:"g"}],
+    steps:["將中筋麵粉、抹茶粉、泡打粉、海鹽過篩在大盆中混合均勻，放入切成小丁的冰硬奶油，用手快速搓揉捏碎，使奶油與乾粉結合成均勻的沙粒狀（動作要快避免奶油融化）。","緩緩倒入冰牛奶，用刮刀以「切拌摺疊」手法混合成團，切忌過度搓揉以免出筋。拌入一半的巧克力碎塊，整理成團後冷藏20分鐘。","取出麵團平分成4份，在每份中央壓出一個小凹槽，塞入大顆黑巧克力塊，把麵團收口包好揉成小球，表面再沾上少許巧克力碎裝飾。","放入預熱180°C的烤箱（或氣炸鍋），烘烤18-20分鐘，至外殼呈現酥硬的金黃色，切開中央會有熱巧克力緩緩流出。"],
+    tip:"高茶多酚抹茶配大顆巧克力，高溫融化形成外酥內爆漿層次。" },
+
+  { id:"matcha_cheese_cookie", name:"小紅書抹茶奶酪曲奇餅乾", difficulty:"簡單", category:"cookie", keywords:["抹茶曲奇","奶酪夾心","網紅甜點"],
+    yield:"8個", temp:"170°C", time:"15分鐘",
+    equipment:["打蛋器","保鮮膜","烤盤","冰箱冷藏"],
+    ingredients:[{name:"無鹽奶油",amount:80,unit:"g"},{name:"低筋麵粉",amount:130,unit:"g"},{name:"抹茶粉",amount:10,unit:"g"},{name:"糖粉",amount:40,unit:"g"},{name:"蛋黃",amount:1,unit:"顆"},{name:"奶油乳酪（夾心）",amount:60,unit:"g"}],
+    steps:["軟化奶油放入盆中，加入糖粉用打蛋器打至顏色泛白、質地蓬鬆，加入一顆蛋黃攪打均勻。","篩入低筋麵粉與抹茶粉，用刮刀翻拌均勻，整理成不黏手的抹茶麵團。","麵團用保鮮膜包好，放入冰箱冷藏30分鐘使其定型變硬好操作。","奶油乳酪餡（已加糖粉拌勻）也可先稍微冷藏定型。取出麵團分成8等分小球，將每份壓扁，包入一份奶油乳酪餡，收口捏緊後輕輕壓成厚餅乾狀。","均勻排盤，放入已預熱170°C的烤箱（或氣炸鍋）中烘烤15分鐘，至表面定型、底部微上色即可，放涼後即完成抹茶綠搭配濃白奶酪內餡的曲奇。"],
+    tip:"冷藏奶油乳酪內餡能在高溫短時間烤製下保持半固態流心。" },
+
+  { id:"cat_cookie", name:"超萌貓咪曲奇餅乾", difficulty:"中等", category:"cookie", keywords:["貓咪餅乾","卡通曲奇","親子DIY"],
+    yield:"依模具數量而定", temp:"170°C", time:"12-15分鐘",
+    equipment:["打蛋器","擀麵棍","貓咪造型模具","擠花袋"],
+    ingredients:[{name:"無鹽奶油",amount:100,unit:"g"},{name:"糖粉",amount:45,unit:"g"},{name:"全蛋液",amount:20,unit:"g"},{name:"低筋麵粉",amount:160,unit:"g"},{name:"可可粉",amount:5,unit:"g"},{name:"融化黑巧克力",amount:0,unit:"適量"}],
+    steps:["軟化奶油與糖粉放入盆中打發至顏色變白，分次加入蛋液，每次都攪打至完全乳化吸收。篩入低筋麵粉，拌成不黏手的均勻麵團。","取出1/3麵團，揉入可可粉至顏色均勻呈深褐色。將原味麵團擀平，把可可色麵團隨意撕成小片貼在原味麵團上，再用擀麵棍輕輕壓實，使兩色融為一體呈現大理石玳瑁紋。","用可愛的貓咪臉型模具壓出曲奇薄片，厚度保持均勻約0.4公分，排入烤盤。","放入預熱170°C的烤箱中，烘烤12-15分鐘，至邊緣微微上色即可出爐，取出後務必徹底放涼定型。","將黑巧克力隔水融化，裝入小擠花袋（或塑膠袋剪小口），在完全冷卻的餅乾表面細心畫出貓咪的眼睛、鼻子、鬍鬚等表情，待巧克力凝固即完成。"],
+    tip:"兩色麵團厚度需均勻壓合，高溫下會完全融合成玳瑁紋路。" },
+
+  { id:"rainbow_glazed_flower_cookie", name:"彩虹琉璃小花餅乾", difficulty:"中等", category:"cookie", keywords:["琉璃餅乾","糖花","高顏值"],
+    yield:"依模具數量而定", temp:"170°C→160°C", time:"8分鐘+5-6分鐘",
+    equipment:["小花造型模具","矽膠烤墊","烤盤"],
+    ingredients:[{name:"原味壓模餅乾麵團",amount:1,unit:"份"},{name:"硬糖（打碎）",amount:0,unit:"適量"}],
+    steps:["將原味壓模餅乾麵團擀成厚度約0.4公分的薄片，先用小花造型模具切出外輪廓，再用更小一號的圓形模具將花朵中心挖空。","將切好的花片排在鋪有高溫矽膠烤墊的烤盤上（一定要用矽膠墊，避免烘焙紙沾黏），放入預熱170°C的烤箱中烘烤8分鐘，使其初步定型。","取出後，將挖空的花心凹槽中均勻填滿事先打碎成粗顆粒的水果硬糖。","將烤盤送回烤箱，轉160°C烘烤5-6分鐘，密切觀察至硬糖完全融化、攤平成一層光滑的糖液為止。","出爐後絕對不能移動或搬動餅乾，必須留在烤盤上於室溫完全冷卻至少20分鐘，待糖液冷凝結晶成堅硬透明的糖片後，才能輕輕從矽膠墊上剝離取下。"],
+    tip:"硬糖高溫液化流滿凹槽，室溫冷卻結晶後會形成晶瑩剔透的琉璃花心。" },
+
+  { id:"marshmallow_bear_cookie", name:"韓系泡澡小熊棉花糖餅乾", difficulty:"簡單", category:"cookie", keywords:["小熊餅乾","棉花糖","韓系甜點"],
+    yield:"10份", temp:"150°C", time:"4-5分鐘",
+    equipment:["烤盤","烘焙紙","擠花袋"],
+    ingredients:[{name:"圓形原味曲奇餅乾",amount:10,unit:"片"},{name:"大顆白棉花糖",amount:10,unit:"顆"},{name:"迷你小熊餅乾",amount:10,unit:"隻"},{name:"融化巧克力醬",amount:0,unit:"適量"}],
+    steps:["將圓形原味曲奇餅乾（或OREO、巧克力餅乾）排列在鋪有烘焙紙的烤盤上，每片餅乾中央放上一顆大棉花糖。","送入預熱150°C的烤箱，烘烤約4-5分鐘，期間要密切觀察，至棉花糖受熱膨脹、表面微微泛白塌軟即可取出（千萬不可烤至焦黑）。","出爐後趁棉花糖還柔軟，立即將一隻迷你小熊餅乾以微微傾斜的角度插入棉花糖中，做出小熊像泡在浴缸裡的呆萌造型。","用裝有融化黑巧克力的擠花袋，在棉花糖表面細心畫出小熊的表情與洗澡水波紋，靜置待棉花糖冷卻收縮凝固即完成。"],
+    tip:"棉花糖高溫下氣泡膨脹軟化，出爐立刻定型才能做出飽滿立體感。" },
+
+  { id:"matcha_avocado_icecream", name:"抹茶酪梨冰淇淋", difficulty:"簡單", category:"nobake", keywords:["抹茶冰淇淋","酪梨","免冰淇淋機"],
+    yield:"依容器大小而定", temp:"免烤（冷凍）", time:"冷凍6小時以上",
+    equipment:["果汁機","耐冷容器","保鮮膜"],
+    ingredients:[{name:"熟成酪梨",amount:1,unit:"顆"},{name:"無糖抹茶粉",amount:15,unit:"g"},{name:"新鮮檸檬汁",amount:1,unit:"大匙"},{name:"羅漢果糖",amount:40,unit:"g"},{name:"椰奶",amount:150,unit:"ml"}],
+    steps:["熟成酪梨對切去籽，挖出果肉放入果汁機（或攪拌機），加入檸檬汁、無糖抹茶粉、代糖與椰奶。","高速攪打至完全順滑，沒有任何顆粒與氣泡，呈現濃稠的綠色酪梨糊。","過篩一次後倒入耐冷容器中，表面貼蓋一層保鮮膜（緊貼表面，防止結霜與表面氧化變色），送入冷凍庫。","每冷凍1.5小時取出，用叉子徹底攪拌一次打散冰晶，重複攪拌3-4次。","冷凍6小時以上至完全硬化，食用前取出在室溫回溫約5分鐘軟化，即可用挖勺舀出享用。"],
+    tip:"酪梨與椰奶的天然油脂能取代乳脂結構，檸檬汁可防止酪梨氧化變黑。" },
+
+  { id:"grape_yakult_smoothie", name:"高顏值葡萄養樂多冰沙", difficulty:"簡單", category:"nobake", keywords:["養樂多冰沙","葡萄","消暑飲品"],
+    yield:"2大杯", temp:"免烤（冷凍飲品）", time:"即時完成",
+    equipment:["破壁機","攪拌棒","玻璃杯"],
+    ingredients:[{name:"無籽黑提子或紅葡萄",amount:20,unit:"顆"},{name:"養樂多",amount:2,unit:"瓶"},{name:"冰塊",amount:1,unit:"大杯"},{name:"新鮮薄荷葉",amount:0,unit:"適量"}],
+    steps:["取10顆葡萄洗淨（去皮或留皮皆可），與2瓶養樂多、1大杯冰塊一同放入強力破壁機中，高速攪打至完全打碎、呈現細緻的粉紅色冰沙。","另取10顆葡萄剖半去籽，放入玻璃杯底部，用攪拌棒稍微搗壓擠出一些果汁，增加底部風味層次。","將打好冰冰涼涼的葡萄養樂多冰沙緩緩倒入杯中，最後在頂部點綴新鮮薄荷葉即可享用。"],
+    tip:"養樂多酸甜益生菌與葡萄多酚色澤融合成清亮酸爽的夏日冰沙。" },
+
+  { id:"keto_earlgrey_poundcake", name:"減醣低碳伯爵紅茶磅蛋糕", difficulty:"簡單", category:"cake", panSize:"1個長條蛋糕模（約18×8×6cm）", keywords:["伯爵茶蛋糕","低醣磅蛋糕","生酮"],
+    yield:"1個長條蛋糕模", temp:"170°C→140°C", time:"40-50分鐘",
+    equipment:["長條蛋糕模","打蛋器","刮刀","冰箱冷藏"],
+    ingredients:[{name:"杏仁粉",amount:100,unit:"g"},{name:"赤藻糖醇",amount:60,unit:"g"},{name:"全蛋",amount:2,unit:"顆"},{name:"無鹽奶油（室溫）",amount:100,unit:"g"},{name:"泡打粉",amount:2,unit:"g"},{name:"伯爵茶粉",amount:8,unit:"g"},{name:"無糖鮮奶油",amount:15,unit:"g"}],
+    steps:["大碗中放入軟化的無鹽奶油、赤藻糖醇與磨碎的伯爵茶粉，用打蛋器充分打發至奶油顏色變淺、體積膨鬆。","全蛋液打散，分3-4次極緩慢倒入奶油糊中，每一次都要快速攪打至完全吸收、不出現油水分離，才能加下一次。","篩入杏仁粉與泡打粉，倒入無糖鮮奶油，改用刮刀以「翻折」手法輕柔拌勻，至呈現滑順無顆粒的伯爵茶蛋糕糊。","倒入鋪好烘焙紙的長條蛋糕模中抹平表面，放入冰箱冷藏定型30分鐘，取出後用刀在表面中間劃一條深線。","烤箱預熱至170°C，送入烘烤20-30分鐘至表面上色，再將溫度轉低至140°C續烤20分鐘，至竹籤插入不沾黏即可出爐，徹底冷卻後再切片。"],
+    tip:"杏仁粉富含油脂，低溫冷藏定型可防止烘烤時塌陷，烤出綿滑無麩質磅蛋糕。" },
+
+  { id:"sourdough_starter", name:"自製魯邦酵種", difficulty:"中等", category:"bread", keywords:["魯邦種","酸種","天然發酵"],
+    yield:"依罐子大小而定", temp:"室溫20-29°C", time:"5-7天",
+    equipment:["玻璃罐","攪拌勺","橡皮筋"],
+    ingredients:[{name:"裸麥粉（或全麥粉）",amount:30,unit:"g"},{name:"自來水（常溫）",amount:30,unit:"g"},{name:"玫瑰鹽",amount:0.05,unit:"g"}],
+    steps:["準備一個玻璃罐與攪拌勺，全部用沸水川燙消毒，瀝乾後徹底放涼，避免雜菌干擾發酵。","在玻璃罐中倒入30g裸麥粉（或全麥粉）、30g常溫水與玫瑰鹽，用攪拌勺充分攪拌至完全無粉粒的均勻糊狀。","用橡皮筋綁在玻璃罐外圍，標記目前麵糊的高度，方便之後觀察膨脹情形。罐子鬆鬆蓋上蓋子（留空隙透氣），放在室溫穩定、不靠近烤爐或冷氣出風口的環境（理想溫度20-29°C）。","每隔24小時，取出酵種的一半量丟棄（棄種），加入新的30g裸麥粉與30g常溫水，攪拌均勻繼續餵養，按此比例重複進行5-7天。","持續觀察酵種狀態，當它能在餵養後2-3小時內穩定膨脹到原體積的2倍以上、表面出現明顯氣孔、聞起來有微酸發酵香氣，即代表起種成功，可以用來製作天然發酵麵包。"],
+    tip:"等重水合能喚醒麥粒天然酵母菌，極少許鹽可平衡乳酸菌與酵母菌生長速度。" },
+
+  { id:"berry_oat_bars", name:"健康莓果燕麥條", difficulty:"簡單", category:"cookie", panSize:"8吋方形烤盤（約20×20cm）", keywords:["燕麥條","莓果","健康機能"],
+    yield:"依切條數量而定", temp:"180°C", time:"25分鐘",
+    equipment:["小鍋","烤盤","烘焙紙"],
+    ingredients:[{name:"燕麥片",amount:1.5,unit:"杯"},{name:"杏仁粉",amount:1,unit:"杯"},{name:"無鹽奶油（或椰子油）",amount:80,unit:"g"},{name:"楓糖漿",amount:4,unit:"大匙"},{name:"鹽之花",amount:0,unit:"一小撮"},{name:"混合莓果",amount:1.5,unit:"杯"},{name:"檸檬汁",amount:1,unit:"大匙"}],
+    steps:["大碗中將燕麥片、杏仁粉、融化的奶油（或椰子油）、楓糖漿與鹽之花混合，用手捏壓至呈現均勻的粗沙粒狀碎屑。","取2/3的燕麥酥粒鋪在墊有烘焙紙的烤盤底部，用杯底或手掌用力壓實壓平整。","混合莓果、檸檬汁與1大匙楓糖漿放入小鍋中，以小火熬煮至微滾、果膠釋放呈濃稠狀。","將熬煮好的莓果內餡均勻鋪在壓實的燕麥底座上，抹平。","將剩下的1/3燕麥酥粒鬆散地灑在莓果表面，放入預熱180°C的烤箱中烘烤25分鐘，至表面呈現金黃酥脆色澤即可出爐，徹底冷卻後再切成條狀，密封保存。"],
+    tip:"杏仁粉與燕麥的高纖維能鎖住油脂，烤出外酥內酸甜飽滿的口感。" },
+
+  { id:"nobake_yogurt_fruit_tart", name:"免烤希臘優格水果塔", difficulty:"簡單", category:"tart", panSize:"6吋塔模（直徑約15cm）", keywords:["優格水果塔","免烤塔","高蛋白"],
+    yield:"6吋塔模", temp:"免烤（冷凍塔皮）", time:"冷凍30分鐘",
+    equipment:["破壁機","6吋塔模","冰箱冷凍"],
+    ingredients:[{name:"傳統大燕麥片",amount:1,unit:"杯"},{name:"去核椰棗",amount:10,unit:"顆"},{name:"杏仁碎（或核桃碎）",amount:50,unit:"g"},{name:"希臘優格",amount:250,unit:"g"},{name:"香草精",amount:0,unit:"少許"},{name:"新鮮時令水果片",amount:0,unit:"適量"}],
+    steps:["將大燕麥片、去核椰棗與杏仁碎（或核桃碎）放入破壁機中，高速打碎，至混合物捏起來會微微黏手結團即可（不需打成泥）。","將打碎的混合物均勻倒入6吋塔模中，用手指按壓底部、再用杯底用力壓實，並沿著模具邊緣將其推出均勻的塔壁。","送入冰箱冷凍30分鐘，至塔皮完全堅硬定型。","將高純度希臘優格、少許楓糖漿與香草精放入碗中攪拌均勻成優格內餡。","取出冷凍硬化的塔皮，將優格內餡均勻填入抹平，表面排滿切好的當季新鮮水果片（如草莓、芒果、藍莓），即可享用。"],
+    tip:"椰棗的天然黏性能將燕麥堅果碎牢牢黏合成塔皮，優格高蛋白低水分不易軟化。" },
+
+  { id:"choc_almond_truffles", name:"健康巧克力杏仁松露球", difficulty:"簡單", category:"nobake", keywords:["松露球","能量球","巧克力杏仁"],
+    yield:"約10-12顆", temp:"免烤（冷藏定型）", time:"冷藏15分鐘",
+    equipment:["破壁機","牙籤","冰箱冷藏"],
+    ingredients:[{name:"去核椰棗",amount:1,unit:"杯"},{name:"烘烤無鹽大杏仁（切碎）",amount:1,unit:"杯"},{name:"無糖純可可粉",amount:3,unit:"大匙"},{name:"無鹽奶油（或椰子油）",amount:15,unit:"g"},{name:"黑巧克力（裹層用）",amount:100,unit:"g"}],
+    steps:["將去核椰棗、無糖純可可粉與融化的椰子油（或奶油）放入破壁機中，高速打成細緻黏稠的泥狀。","倒入烘烤過、切碎的無鹽大杏仁，用勺子輕柔混合均勻（杏仁顆粒能提供脆口咬感，不要過度攪打打碎）。","用手將混合好的椰棗泥捏揉成一口大小、大小一致的圓球狀。","將黑巧克力隔水加熱融化，用牙籤插住每顆小圓球，浸入融化的巧克力液中，均勻裹上一層薄脆外殼，取出排在烘焙紙上，表面撒上少許海鹽。","送入冰箱冷藏約15分鐘，至外殼完全結晶硬化即可享用。"],
+    tip:"椰棗多糖黏性結合杏仁油脂，外裹巧克力冷藏結晶成脆硬外殼。" },
+
+  { id:"flourless_almond_butter_cookies", name:"無麵粉杏仁奶油巧克力豆餅乾", difficulty:"簡單", category:"cookie", keywords:["無麵粉餅乾","杏仁醬餅乾","五樣材料"],
+    yield:"依分割數量而定", temp:"175°C", time:"10-12分鐘",
+    equipment:["打蛋器","叉子","烤盤"],
+    ingredients:[{name:"無糖杏仁醬",amount:1,unit:"杯"},{name:"椰子糖（或赤藻糖醇）",amount:0.5,unit:"杯"},{name:"新鮮雞蛋",amount:1,unit:"顆"},{name:"食用小蘇打粉",amount:0.5,unit:"茶匙"},{name:"耐高溫巧克力豆",amount:0.5,unit:"杯"}],
+    steps:["盆中放入天然無糖杏仁醬、代糖與雞蛋，用手持打蛋器用力攪拌均勻，至呈現厚稠、有光澤的乳化狀態。","篩入食用小蘇打粉，攪拌均勻。","拌入耐高溫巧克力豆，揉成質地均勻的麵團。","將麵團分成大小一致的小球，排入烤盤，用叉子在每顆曲奇表面輕輕交叉壓出網格紋（有助於受熱均勻）。","送入預熱175°C的烤箱，烘烤10-12分鐘，出爐後放在架上徹底冷卻，餅乾冷卻後會逐漸變得酥脆。"],
+    tip:"不用奶油與麵粉，靠杏仁醬油脂與雞蛋的蛋白質熱變性形成扎實口感。" },
+
+  { id:"baked_apples_oat", name:"家常脆烤蘋果", difficulty:"簡單", category:"cake", keywords:["烤蘋果","燕麥酥粒","家常甜點"],
+    yield:"2顆", temp:"180°C", time:"20-25分鐘",
+    equipment:["烤盤","湯匙"],
+    ingredients:[{name:"新鮮微酸蘋果",amount:2,unit:"顆"},{name:"燕麥片",amount:0.5,unit:"杯"},{name:"細黑糖（或楓糖漿）",amount:2,unit:"大匙"},{name:"肉桂粉",amount:0.5,unit:"茶匙"},{name:"無鹽奶油（切小丁）",amount:15,unit:"g"}],
+    steps:["新鮮微酸蘋果（如富士或青蘋果）洗淨，對半切開並去核，用湯匙在切面中心挖出一個適中的凹槽。","燕麥片、細黑糖（或楓糖漿）、肉桂粉與切成小丁的冰奶油放入碗中，用手指捏搓混合成均勻的沙粒狀酥粒。","將燕麥肉桂酥粒平均塞滿每顆蘋果中心的凹槽，再放上一小片奶油在表面。","將蘋果排在烤盤上，放入預熱180°C的烤箱中，烘烤20-25分鐘，至蘋果邊緣呈現焦糖化、頂部燕麥酥粒金黃酥脆即可出爐。","趁熱淋上一茶匙蜂蜜，即可享用外皮軟嫩多汁、頂部香酥的家常烤蘋果。"],
+    tip:"微酸蘋果高溫下果膠軟化釋放果酸，與肉桂黑糖融合成軟嫩多汁的家常烤蘋果。" },
+
+  { id:"baked_oatmeal_cups", name:"巧克力豆烤燕麥杯", difficulty:"簡單", category:"muffin", panSize:"6孔馬芬模（單孔直徑約7cm）", keywords:["燕麥杯","親子DIY","高纖早餐"],
+    yield:"約6個馬芬杯", temp:"180°C", time:"20分鐘",
+    equipment:["馬芬模","紙杯","刮刀"],
+    ingredients:[{name:"傳統燕麥片",amount:1.5,unit:"杯"},{name:"熟成香蕉泥",amount:0.5,unit:"杯"},{name:"新鮮雞蛋",amount:1,unit:"顆"},{name:"牛奶",amount:0.5,unit:"杯"},{name:"蜂蜜",amount:2,unit:"大匙"},{name:"泡打粉",amount:1,unit:"茶匙"},{name:"巧克力豆",amount:0.33,unit:"杯"}],
+    steps:["盆中放入熟成香蕉泥、雞蛋、牛奶與蜂蜜，用打蛋器徹底攪拌均勻。","倒入傳統燕麥片與泡打粉，用刮刀攪拌均勻，最後拌入巧克力豆混合均勻。","將燕麥糊均勻倒入馬芬紙杯中，約8分滿。","放入預熱180°C的烤箱中，烘烤20分鐘，至表面著色、按壓中心回彈定型即可出爐。"],
+    tip:"燕麥與香蕉泥的膳食纖維緩慢水合，泡打粉撐開結構，做出高飽足感早餐杯。" },
+
+  { id:"nobake_choc_pb_bars", name:"免烤巧克力花生醬燕麥條", difficulty:"簡單", category:"nobake", panSize:"8吋方形模（約20×20cm）", keywords:["花生醬燕麥條","免烤箱","能量補充"],
+    yield:"依切條數量而定", temp:"免烤（冷凍定型）", time:"冷凍45分鐘",
+    equipment:["小鍋","長方形模具","保鮮膜"],
+    ingredients:[{name:"傳統大燕麥片",amount:2,unit:"杯"},{name:"天然無糖花生醬",amount:1,unit:"杯"},{name:"楓糖漿",amount:0.33,unit:"杯"},{name:"黑巧克力（表面層）",amount:120,unit:"g"},{name:"海鹽",amount:0,unit:"一小撮"}],
+    steps:["天然無糖花生醬與楓糖漿放入小鍋中，微溫小火加熱攪拌至融化滑順（切勿煮沸）。","將融化的花生醬糖漿倒入大燕麥片中，用刮刀徹底翻折拌勻，至每片燕麥都均勻沾裹醬料。","倒入鋪好保鮮膜的長方形模具中，用刮刀或杯底用力拍平壓實，送入冷凍庫冷凍30分鐘定型。","黑巧克力隔水加熱融化，均勻塗抹在冷凍硬化的燕麥條表面，趁未凝固撒上少許海鹽。","送回冷凍庫15分鐘至巧克力完全凝固，取出切成條狀，密封冷凍保存。"],
+    tip:"天然花生醬低溫高度凝結，能牢牢鎖住燕麥片形成外脆內Q的能量棒。" },
+
+  { id:"maple_vanilla_baked_pears", name:"楓糖香草烤梨", difficulty:"簡單", category:"cake", keywords:["烤西洋梨","楓糖","法式家常"],
+    yield:"2顆", temp:"180°C", time:"20分鐘",
+    equipment:["烤盤","湯匙"],
+    ingredients:[{name:"新鮮西洋梨",amount:2,unit:"顆"},{name:"楓糖漿",amount:2,unit:"大匙"},{name:"香草精",amount:1,unit:"小匙"},{name:"脆燕麥穀物",amount:0,unit:"適量"}],
+    steps:["新鮮西洋梨剖半，用湯匙小心挖去果核中心。","將楓糖漿與香草精混合均勻，用刷子均勻刷在梨肉切面上，靜置讓其稍微浸潤入味。","西洋梨切面朝上整齊排在烤盤上，送入預熱180°C的烤箱，烘烤20分鐘，至梨肉完全軟化、散發香草甜香。","出爐後表面撒滿香脆的燕麥穀物，趁熱立即享用。"],
+    tip:"高水分西洋梨遇熱蒸發，楓糖與香草深入梨肉，形成外微焦糖、入口軟滑的甜點。" },
+
+  { id:"banana_pb_oat_bars", name:"香蕉花生醬燕麥能量條", difficulty:"簡單", category:"cookie", panSize:"8吋方形烤模（約20×20cm）", keywords:["香蕉燕麥條","花生醬","運動機能"],
+    yield:"依切塊數量而定", temp:"180°C", time:"18-20分鐘",
+    equipment:["烤模","刮刀","烘焙紙"],
+    ingredients:[{name:"熟香蕉泥",amount:2,unit:"根"},{name:"天然純花生醬",amount:0.5,unit:"杯"},{name:"傳統大燕麥片",amount:1.5,unit:"杯"},{name:"耐高溫巧克力豆",amount:0.33,unit:"杯"}],
+    steps:["大碗中將熟香蕉泥與天然純花生醬混合，用橡皮刮刀攪拌均勻。","倒入大燕麥片與耐高溫巧克力豆，徹底翻拌至完全沒有乾燥顆粒、質地均勻。","倒入鋪好烘焙紙的方形烤模中，用刮刀或杯底壓平整。","放入預熱180°C的烤箱中烘烤18-20分鐘，至表面微金黃即可出爐，取出徹底冷卻後再切成小塊享用（趁熱切容易散開）。"],
+    tip:"香蕉泥果膠提供支撐力，花生醬高脂受熱膨脹讓燕麥烤得香Q不易散開。" },
+
+  { id:"blueberry_yogurt_popsicles", name:"藍莓優格大理石雪糕", difficulty:"簡單", category:"nobake", keywords:["優格雪糕","藍莓","親子消暑"],
+    yield:"約4-6支", temp:"免烤（冷凍）", time:"冷凍6小時以上",
+    equipment:["小鍋","雪糕模具","叉子"],
+    ingredients:[{name:"新鮮藍莓",amount:1.5,unit:"杯"},{name:"希臘優格",amount:1.5,unit:"杯"},{name:"楓糖漿",amount:3,unit:"大匙"}],
+    steps:["新鮮藍莓與1大匙楓糖漿放入小鍋中，以小火熬煮約5分鐘，至藍莓破裂軟化、釋出濃郁深紫色果醬，離火放涼。","將希臘優格與2大匙楓糖漿放入碗中攪拌均勻。","把放涼的藍莓醬倒入優格中，用叉子隨意輕拌1-2下，拉出漂亮的大理石紫白色條紋（勿過度攪拌，以免顏色完全混合失去紋路）。","倒入雪糕模具中，插上雪糕棍，送入冷凍庫冷凍6小時以上，至完全凝固定型即可脫模享用。"],
+    tip:"希臘優格低水高蛋白結合濃縮藍莓果膠，冷凍後不結粗冰晶，口感細滑如雪酪。" },
+
+  { id:"nobake_coconut_bars", name:"免烤椰子脆脆穀物條", difficulty:"簡單", category:"nobake", panSize:"8吋方形烤盤（約20×20cm）", keywords:["椰子穀物條","免烤箱","燕麥棒"],
+    yield:"依切條數量而定", temp:"免烤（冷凍定型）", time:"冷凍30分鐘",
+    equipment:["小鍋","方形烤盤","鏟刀"],
+    ingredients:[{name:"大燕麥片",amount:1.5,unit:"杯"},{name:"椰子細絲",amount:0.5,unit:"杯"},{name:"天然純杏仁醬",amount:0.5,unit:"杯"},{name:"蜂蜜",amount:0.33,unit:"杯"},{name:"切碎黑巧克力",amount:50,unit:"g"}],
+    steps:["天然純杏仁醬與蜂蜜放入小鍋中，微火加熱攪拌至融化滑順（不需煮滾）。","將融化的杏仁醬蜂蜜倒入大燕麥片與椰子細絲中，攪拌均勻至完全沾裹，再拌入切碎黑巧克力。","倒入方形烤盤中，用鏟刀用力壓平整實，送入冷凍庫冷凍定型30分鐘。","取出脫模，切成長條狀，密封保存於冷藏或冷凍。"],
+    tip:"椰子細絲多孔纖維高度吸附油脂，冷凍結晶形成椰香濃郁的Q軟穀物棒。" },
+
+  { id:"wholewheat_choc_banana_muffins", name:"健康全麥巧克力香蕉馬芬", difficulty:"簡單", category:"muffin", panSize:"標準馬芬模（單孔直徑約7cm）", keywords:["全麥馬芬","香蕉巧克力","健康烘焙"],
+    yield:"依馬芬杯數量而定", temp:"180°C", time:"18-20分鐘",
+    equipment:["馬芬模","篩網","牙籤"],
+    ingredients:[{name:"全麥麵粉",amount:1.5,unit:"杯"},{name:"熟香蕉泥",amount:2,unit:"根"},{name:"純無糖可可粉",amount:0.33,unit:"杯"},{name:"新鮮雞蛋",amount:1,unit:"顆"},{name:"融化椰子油",amount:50,unit:"g"},{name:"楓糖漿",amount:0.5,unit:"杯"},{name:"小蘇打粉",amount:1,unit:"茶匙"},{name:"無糖花生醬（裝飾）",amount:0,unit:"適量"}],
+    steps:["全麥麵粉、純無糖可可粉與小蘇打粉一同過篩在大碗中混合均勻。","另取一鋼盆，將熟香蕉泥、雞蛋、融化椰子油與楓糖漿攪拌均勻。","將濕料倒入乾料中，用刮刀以切拌方式混合至看不到乾粉顆粒即可，切忌過度攪拌，以免全麥粉出筋導致口感變硬。","裝入馬芬紙杯約8分滿，表面各滴上一茶匙無糖花生醬，用牙籤輕輕畫圈拉出大理石旋渦花紋。","放入預熱180°C的烤箱中，烘烤18-20分鐘，至表面定型、竹籤插入不沾黏即可出爐。"],
+    tip:"熟香蕉果膠能軟化全麥粗糙口感，烤出富含纖維又香濃的健康馬芬。" },
+
+  { id:"keto_yogurt_lemon_bars", name:"高蛋白希臘優格檸檬條", difficulty:"簡單", category:"tart", panSize:"8吋方形烤模（約20×20cm）", keywords:["檸檬條","希臘優格","低醣機能"],
+    yield:"8吋方模", temp:"175°C→160°C", time:"10分鐘+20分鐘",
+    equipment:["8吋方模","電動攪拌棒","冰箱冷藏"],
+    ingredients:[{name:"杏仁粉（塔底）",amount:1,unit:"杯"},{name:"融化奶油（塔底）",amount:30,unit:"g"},{name:"代糖（塔底）",amount:2,unit:"大匙"},{name:"希臘優格（內餡）",amount:300,unit:"g"},{name:"新鮮檸檬汁（內餡）",amount:0.33,unit:"杯"},{name:"檸檬皮絲（內餡）",amount:1,unit:"大匙"},{name:"全蛋（內餡）",amount:2,unit:"顆"},{name:"羅漢果糖（內餡）",amount:50,unit:"g"},{name:"玉米粉（內餡）",amount:1,unit:"大匙"}],
+    steps:["大碗中將杏仁粉、融化無鹽奶油與代糖混合，用手捏成均勻的團狀，倒入8吋方模中用杯底壓平整實。","放入預熱175°C的烤箱中烘烤10分鐘，至表面微微上色，取出放涼備用。","另取大盆，將希臘優格、全蛋、檸檬汁、檸檬皮絲、羅漢果糖與玉米粉放入，用手持電動攪拌棒快速攪打至完全均勻、無顆粒狀。","將優格檸檬餡倒入已烤好放涼的底部模具中抹平，送回烤箱，轉溫至160°C，烘烤20分鐘，至優格餡中心輕輕晃動仍有點彈性（不是液態）即可離火。","室溫冷卻後，放入冰箱冷藏至少2小時使其完全凝固定型，取出切塊享用。"],
+    tip:"玉米粉受熱吸水糊化能穩定優格乳凍質地，冷藏後切開才會整齊滑嫩。" },
+
+  { id:"sea_salt_choc_almonds", name:"海鹽黑巧克力大杏仁", difficulty:"簡單", category:"nobake", keywords:["巧克力杏仁","海鹽","機能小零食"],
+    yield:"約2杯量", temp:"150°C（烤杏仁）", time:"10分鐘",
+    equipment:["烤盤","隔水加熱鍋","叉子"],
+    ingredients:[{name:"無鹽大杏仁",amount:2,unit:"杯"},{name:"黑巧克力（70%以上）",amount:150,unit:"g"},{name:"粗粒海鹽",amount:0,unit:"適量"}],
+    steps:["無鹽大杏仁平鋪在烤盤上，放入預熱150°C的烤箱中烘烤10分鐘，至散發堅果香氣，取出放涼。","黑巧克力隔水加熱融化，溫度控制在約50°C使其完全融成液態，離火備用。","將放涼的杏仁倒入巧克力液中，輕輕翻拌，確保每顆杏仁都均勻包裹上一層巧克力，用叉子撈起，分散排在鋪有烘焙紙的盤子上（避免黏在一起）。","趁巧克力尚未凝固，立刻在表面均勻撒上粗粒海鹽。","放入冰箱冷藏約15分鐘，至表面完全硬化結晶即可食用，密封冷藏保存。"],
+    tip:"巧克力冷卻至15°C以下可可脂快速重組結晶，鹽與苦甜結合更顯高級感。" },
+
+  { id:"choc_pb_protein_smoothie", name:"高蛋白巧克力花生醬昔", difficulty:"簡單", category:"nobake", keywords:["蛋白奶昔","花生醬可可","機能飲品"],
+    yield:"1杯", temp:"免烤（飲品）", time:"即時完成",
+    equipment:["破壁機"],
+    ingredients:[{name:"無糖豆漿",amount:250,unit:"ml"},{name:"純無糖可可粉",amount:1.5,unit:"大匙"},{name:"天然純花生醬",amount:1,unit:"大匙"},{name:"熟成冰香蕉",amount:1,unit:"根"},{name:"大豆分離蛋白粉（可選）",amount:0,unit:"適量"}],
+    steps:["將無糖豆漿（或杏仁奶）、純無糖可可粉、天然純花生醬、冷凍香蕉片，以及依喜好添加的大豆分離蛋白粉，全部倒入強力破壁機中。","高速攪打約1分鐘，直至冰沙完全融合、質地呈現濃稠細滑的奶昔狀，沒有顆粒殘留即可倒入杯中享用。"],
+    tip:"冷凍香蕉果膠具乳化特性，能讓花生醬油脂與植物奶完美融合成奶昔口感。" },
+
+  { id:"choc_coconut_almond_tart", name:"純素無麩質巧克力椰奶杏仁塔", difficulty:"簡單", category:"tart", panSize:"6吋塔模（直徑約15cm）", keywords:["純素塔","巧克力椰奶","無麩質"],
+    yield:"6吋塔模", temp:"175°C（塔皮）", time:"10分鐘+冷藏2小時",
+    equipment:["6吋塔模","小鍋","冰箱冷藏"],
+    ingredients:[{name:"杏仁粉（塔皮）",amount:1,unit:"杯"},{name:"燕麥粉（塔皮）",amount:0.5,unit:"杯"},{name:"椰子油（塔皮）",amount:2,unit:"大匙"},{name:"楓糖漿（塔皮）",amount:2,unit:"大匙"},{name:"鹽（塔皮）",amount:0,unit:"一撮"},{name:"濃椰奶（內餡）",amount:200,unit:"ml"},{name:"黑巧克力碎（內餡）",amount:150,unit:"g"},{name:"楓糖漿（內餡）",amount:1,unit:"大匙"},{name:"香草精（內餡）",amount:0.5,unit:"小匙"}],
+    steps:["將杏仁粉、燕麥粉、融化椰子油、楓糖漿與一撮鹽放入碗中攪拌捏成團。","壓入6吋塔模中，用杯底拍實底部，並沿邊緣將麵團推出均勻塔壁。","送入預熱175°C的烤箱中，精確烘烤10分鐘至表面微黃上色，取出放涼備用。","小鍋中倒入濃椰奶與楓糖漿，中火煮至微溫（不可煮滾），離火後立刻加入黑巧克力碎與香草精，靜置2分鐘待巧克力軟化，再攪拌至完全融化、呈絲滑亮澤的巧克力液。","將溫熱的椰奶巧克力液緩緩倒入已放涼的無麩質塔皮中，輕輕搖晃使表面平整。","放入冰箱冷藏至少2小時，至巧克力內餡完全冷凝固化，切開前撒上烘烤過的杏仁片或海鹽點綴即可享用。"],
+    tip:"椰奶飽和植物脂肪與可可脂冷藏協同結晶，不需蛋液或吉利丁就能做出絲滑塔餡。" },
+
+  { id:"nougat_almond_macadamia", name:"奶香杏仁夏威夷豆牛軋糖", difficulty:"簡單", category:"nobake", panSize:"鋪平於約25×25cm烤盤或糖盤，厚度約1.5cm", keywords:["牛軋糖","夏威夷豆","年節糖果"],
+    yield:"依切塊數量而定", temp:"150°C（烤堅果）", time:"20分鐘",
+    equipment:["不銹鋼鍋","烤盤","耐高溫濾網","刮板","高溫防黏布"],
+    ingredients:[{name:"無水奶油",amount:364,unit:"g"},{name:"細砂糖",amount:126,unit:"g"},{name:"海藻糖",amount:28,unit:"g"},{name:"麥芽糖",amount:350,unit:"g"},{name:"鹽",amount:5.6,unit:"g"},{name:"蜂蜜",amount:140,unit:"g"},{name:"杏仁片",amount:700,unit:"g"},{name:"夏威夷豆",amount:840,unit:"g"},{name:"熟白芝麻粒",amount:56,unit:"g"}],
+    steps:["夏威夷豆均勻排在烤盤上，放入預熱150°C的烤箱中烘烤20分鐘至散發濃烈堅果香，出爐後放在微溫處備用（不可放涼，太冷會讓糖體提早結晶）。","將無水奶油、細砂糖、海藻糖、麥芽糖、鹽與蜂蜜放入大不鏽鋼鍋中，開小火加熱，過程中輕輕攪拌，使其完全溶化、乳化並均勻沸騰。","迅速將烤好微溫的杏仁片與夏威夷豆倒入沸騰的糖液中，用耐高溫刮刀中火翻炒，至堅果均勻裹上糖液呈金黃琥珀色（接近上色完成前可先關火，利用餘溫繼續翻炒避免過焦）。","撒入熟白芝麻粒快速拌勻，隨後將整鍋堅果糖倒入耐高溫濾網中，充分搖晃濾掉多餘的融化油脂（這是成品香脆不油膩的關鍵步驟）。","將過濾後的堅果糖倒在鋪有高溫防黏布的烤盤上，用刮板快速推開壓實，整理成厚度約1.5公分的平整板狀。","待溫度降至微溫、糖體定型但尚未變硬時，用利刀切成均勻小塊，完全冷卻後密封保存防潮。"],
+    tip:"堅果保持微溫再拌入糖液，能避免糖體提早結晶；過濾掉多餘油脂是夏豆糖久放不返油的秘訣。" },
+
+  { id:"nougat_passionfruit_pineapple", name:"百香鳳梨牛軋糖", difficulty:"中等", category:"nobake", panSize:"鋪平於約25×25cm糖盤，用擀麵棍壓實擀平", keywords:["牛軋糖","百香果","水果軟糖"],
+    yield:"依切塊數量而定", temp:"免烤（熬糖）", time:"約1小時",
+    equipment:["攪拌缸","銅鍋","溫度計","小鍋","糖盤","防黏布"],
+    ingredients:[{name:"飲用水",amount:250,unit:"g"},{name:"麥芽糖",amount:600,unit:"g"},{name:"海藻糖",amount:285,unit:"g"},{name:"專用糖",amount:240,unit:"g"},{name:"糖漿",amount:55,unit:"g"},{name:"蛋白霜粉",amount:112,unit:"g"},{name:"飲用水（打發用）",amount:75,unit:"g"},{name:"鹽",amount:9,unit:"g"},{name:"無水奶油",amount:118,unit:"g"},{name:"酪乳粉",amount:200,unit:"g"},{name:"冷凍百香果果泥",amount:340,unit:"g"},{name:"雪花糖（果泥用）",amount:100,unit:"g"},{name:"夏威夷豆",amount:900,unit:"g"},{name:"鳳梨果乾丁",amount:300,unit:"g"},{name:"蜜漬桔子皮",amount:250,unit:"g"},{name:"百香果風味乾粉",amount:80,unit:"g"},{name:"防潮糖粉（表面）",amount:100,unit:"g"},{name:"百香果風味乾粉（表面）",amount:30,unit:"g"}],
+    steps:["攪拌缸中放入蛋白霜粉、水與鹽，中高速攪打至呈硬性發泡、潔白穩定的蛋白霜，備用。","將水、麥芽糖、海藻糖、專用糖與糖漿倒入大銅鍋中，小火加熱熬煮，用溫度計監控至135°C。","另取小鍋將冷凍百香果泥與雪花糖隔水加熱至60°C。糖水達135°C時，將微溫百香果泥緩慢沖入，再次加熱熬煮至125°C，使果泥水分完全融入糖體。","將125°C的百香果糖漿呈細線狀緩慢沖入打發好的蛋白霜中，持續高速攪打成蓬鬆、帶粉亮色澤的乳化糖體，再加入無水奶油與酪乳粉，中速攪打至完全吸收。","加入溫熱的夏威夷豆、鳳梨果乾丁、蜜漬桔子皮與百香果粉，改用攪拌鏟快速翻拌均勻。","倒入鋪有防黏布的糖盤中，表面覆蓋防黏布並用擀麵棍壓實擀平，完全冷卻凝固後，兩面撒上混合好的防潮糖粉與百香果粉，用利刀切成均勻長條小塊。"],
+    tip:"果泥需先加熱到60°C再沖入高溫糖漿，避免溫差過大讓糖反砂；二次熬煮到125°C能讓牛軋糖夏天也不軟塌。" },
+
+  { id:"mont_blanc_roasted_chestnut", name:"烤栗子蒙布朗", difficulty:"進階", category:"cake", keywords:["蒙布朗","栗子","法式經典"],
+    yield:"依擠製份數而定", temp:"100°C（蛋白霜）", time:"2小時",
+    equipment:["攪拌缸","星形花嘴","多齒蒙布朗花嘴","矽膠墊","電動攪拌器"],
+    ingredients:[{name:"新鮮蛋白",amount:90,unit:"g"},{name:"細砂糖",amount:100,unit:"g"},{name:"海鹽",amount:0,unit:"一撮"},{name:"整顆熟烤栗子",amount:100,unit:"g"},{name:"25%輕脂鮮奶油",amount:400,unit:"g"},{name:"糖漬栗子（裝飾）",amount:0,unit:"適量"},{name:"防潮糖粉",amount:0,unit:"適量"}],
+    steps:["將整顆熟烤栗子放入25%輕脂鮮奶油中完全浸沒，密封放入冰箱冷藏（4°C）浸泡過夜，讓栗子的焦香充分溶入鮮奶油。","蛋白加一撮鹽打發，分次加入細砂糖，打至呈光亮挺立的乾性發泡。用星形花嘴在鋪矽膠墊的烤盤上擠出直徑約5公分的圓形底座。","放入預熱100°C的烤箱，低溫烘烤2小時，至蛋白霜完全乾燥香脆，出爐放涼。","隔天將浸泡好的熟栗子與輕脂鮮奶油一同倒入攪拌缸，用電動攪拌器中高速攪打，將栗子打碎並與鮮奶油完美乳化，打至八分發、呈挺立發泡狀。","在烤好的蛋白霜底座中心抹上少許栗子奶油，放上一整顆熟栗子，再用多齒蒙布朗花嘴將栗子奶油由下往上、由內而外螺旋狀擠出包覆，形成高聳雪山形狀。","頂部撒上防潮糖粉，放上一顆糖漬栗子裝飾即完成。"],
+    tip:"栗子需冷藏浸泡過夜才能讓焦糖栗香完全融入鮮奶油；蛋白霜务必低溫長時間烘乾，才會香脆不返潮。" },
+
+  { id:"chocolate_flan_dark", name:"黑巧克力布丁塔", difficulty:"中等", category:"tart", panSize:"6吋圓形派盤（直徑約15cm）", keywords:["巧克力塔","布丁塔","flan"],
+    yield:"6吋1個", temp:"180°C（盲烤）→170°C（烘烤）", time:"15分鐘+25-30分鐘",
+    equipment:["6吋派盤","叉子","壓派石","打蛋器","刮刀"],
+    ingredients:[{name:"低筋麵粉（派皮）",amount:150,unit:"g"},{name:"冰無鹽奶油（派皮）",amount:75,unit:"g"},{name:"冰水（派皮）",amount:40,unit:"g"},{name:"鹽（派皮）",amount:2,unit:"g"},{name:"牛奶（內餡）",amount:250,unit:"g"},{name:"25%輕脂鮮奶油（內餡）",amount:250,unit:"g"},{name:"80%黑巧克力（內餡）",amount:120,unit:"g"},{name:"細砂糖（內餡）",amount:45,unit:"g"},{name:"玉米粉（內餡）",amount:35,unit:"g"},{name:"堅果醬（裝飾）",amount:0,unit:"適量"},{name:"烤香堅果碎（裝飾）",amount:0,unit:"適量"},{name:"可可碎粒（裝飾）",amount:0,unit:"適量"}],
+    steps:["低筋麵粉、鹽與冰奶油丁用手搓成沙粒狀，加入冰水捏合成團，冷藏鬆弛1小時。","擀開裝入6吋派盤中，底部用叉子戳孔，鋪上烘焙紙並壓上重石，放入預熱180°C的烤箱中盲烤15分鐘至半熟，取出備用。","鋼鍋中倒入牛奶、輕脂鮮奶油、細砂糖與玉米粉，用打蛋器攪拌均勻，開中小火加熱，期間不間斷用刮刀摩擦鍋底攪拌，直到溫度升高、玉米粉徹底糊化呈濃稠的卡士達狀，立刻離火。","離火後立刻倒入黑巧克力，利用卡士達餘熱快速攪拌至巧克力完全融化，呈黑色光亮絲滑的巧克力糊。","趁熱將巧克力糊填裝入半熟派皮中抹平，放入預熱170°C的烤箱，烘烤25-30分鐘，至邊緣稍微隆起、表面形成薄薄烤皮、中心微微晃動即可出爐。","室溫完全冷卻後，送入冰箱冷藏4小時使其完全凝結。脫模後淋上堅果醬，撒上烤香堅果碎與可可碎粒，切塊享用。"],
+    tip:"完全不用蛋，靠玉米粉糊化與黑巧克力可可脂低溫凝固撐起濃郁切面，攪拌鍋底時務必不間斷以免燒焦。" },
+
+  { id:"galette_des_rois_chestnut", name:"黃金秋栗國王派", difficulty:"進階", category:"tart", panSize:"直徑6吋（約15cm）圓形酥皮，不需特定烤模", keywords:["國王派","栗子","千層酥皮"],
+    yield:"6吋1個", temp:"190°C→175°C", time:"20分鐘+20-25分鐘",
+    equipment:["擀麵棍","保鮮膜","刀","烤盤"],
+    ingredients:[{name:"高筋麵粉（麵團）",amount:250,unit:"g"},{name:"低筋麵粉（麵團）",amount:250,unit:"g"},{name:"冰水（麵團）",amount:240,unit:"g"},{name:"鹽（麵團）",amount:10,unit:"g"},{name:"發酵奶油（裹入用）",amount:350,unit:"g"},{name:"低筋麵粉（裹油用）",amount:50,unit:"g"},{name:"熟栗子泥",amount:200,unit:"g"},{name:"杏仁奶油餡",amount:150,unit:"g"},{name:"黑醋栗果醬",amount:50,unit:"g"},{name:"國王派小瓷偶",amount:1,unit:"個"},{name:"蛋黃液（表面）",amount:0,unit:"適量"}],
+    steps:["將麵團底材料揉勻擀成方形。裏入用奶油與低粉揉成方塊擀平，冷藏1小時。","採用「油包麵」手法將奶油塊包裹住麵團，擀開進行3次三折，每次折疊後冷藏鬆弛40分鐘，共折出324層極薄酥皮，最後冷藏備用。","將手工栗子泥與杏仁奶油餡充分攪拌均勻成秋栗內餡。","擀出兩張直徑6吋的圓形酥皮，底層中心擠上秋栗內餡，餡料中央隨機放入一顆國王派小瓷偶，點綴少許黑醋栗果醬。","酥皮邊緣抹上極少許水，蓋上第二張酥皮，邊緣重合並用手指緊密壓實，用刀背在邊緣往內推壓出栗子外殼形狀，表面輕輕雕刻出葉脈紋路。","表面刷上蛋黃液，中央和四周用針戳幾個氣孔防止爆開。送入預熱190°C的烤箱烘烤20分鐘使派皮高高膨脹，再調溫至175°C續烤20-25分鐘至表面金黃酥亮。"],
+    tip:"⚠️ 內餡中藏有實體小瓷偶，食用前務必提醒所有人小心，避免誤食；反折酥皮層次多，務必確實冷藏鬆弛每一折。" },
+
+  { id:"galette_des_rois_classic", name:"法式經典香草國王派", difficulty:"進階", category:"tart", panSize:"直徑6吋（約15cm）圓形酥皮，不需特定烤模", keywords:["國王派","香草","frangipane"],
+    yield:"6吋1個", temp:"190°C→170°C", time:"20分鐘+25分鐘",
+    equipment:["擀麵棍","刀","烤盤","冰箱冷藏"],
+    ingredients:[{name:"反折千層酥皮",amount:1,unit:"份（同黃金秋栗國王派）"},{name:"杏仁奶油餡",amount:200,unit:"g"},{name:"香草卡士達醬",amount:100,unit:"g"},{name:"國王派小瓷偶",amount:1,unit:"個"},{name:"蛋黃液（表面）",amount:0,unit:"適量"}],
+    steps:["擀出兩張直徑6吋的324層反折千層酥皮，置於烤盤上冷藏備用。","將室溫的卡士達醬與杏仁奶油餡以1:2的比例充分攪拌混勻，加入新鮮香草籽，形成滑順奶香濃郁的Frangipane內餡。","在底層圓形酥皮中心擠上Frangipane餡，放入小瓷偶，邊緣刷上微量水，蓋上第二張酥皮，用手掌將四周緊密貼合壓實防漏。","表面刷上蛋黃液，冰箱冷藏15分鐘定型，再用刀尖在表面輕輕劃出螺旋太陽紋路，並在中心戳一個小氣孔。","放入預熱190°C的烤箱，烘烤20分鐘至派皮定型膨大，再降溫至170°C續烤25分鐘至熟透呈琥珀金色，出爐放涼。"],
+    tip:"⚠️ 內餡中藏有實體小瓷偶，食用前務必提醒所有人小心，避免誤食；冷藏定型後再劃紋路，線條才會清晰不糊。" },
+
+  { id:"kouign_amann_classic", name:"經典法式安妮卷", difficulty:"進階", category:"bread", panSize:"切成10×10cm正方形，放入單孔馬芬模或塔模烘烤", keywords:["安妮卷","焦糖酥","kouign amann"],
+    yield:"依切割數量而定", temp:"190°C", time:"25-30分鐘",
+    equipment:["攪拌缸","擀麵棍","馬芬模或塔模","保鮮膜"],
+    ingredients:[{name:"高筋麵粉",amount:300,unit:"g"},{name:"冰水",amount:160,unit:"g"},{name:"速發酵母粉",amount:4,unit:"g"},{name:"鹽",amount:5,unit:"g"},{name:"細砂糖",amount:15,unit:"g"},{name:"融化無鹽奶油",amount:20,unit:"g"},{name:"裹入用發酵奶油",amount:180,unit:"g"},{name:"折疊用細砂糖",amount:120,unit:"g"}],
+    steps:["將麵粉、水、酵母、鹽、15g糖、融化奶油倒入攪拌缸，慢速攪拌5分鐘至揉成表面光滑的麵團。蓋保鮮膜室溫初發40分鐘，擀平成長方形，送冷藏鬆弛1小時。","將180g裹入用奶油擀成正方形，放在冷藏麵皮中央，合攏麵皮包裹，進行第一次三折。","進行第二次和第三次三折時，在檯面與麵皮表面大量均勻撒上細砂糖，讓糖隨折疊一同層層包裹進酥皮中，每次折疊後冷藏鬆弛。","將麵團擀開至0.4公分厚度，切成10×10公分正方形，將四角向中央對折捏攏。","放入塗有發酵奶油並輕灑砂糖的模具中，送入預熱190°C的烤箱，烘烤25-30分鐘，至大量奶油與糖在表面焦糖化，形成硬脆油亮的琥珀色亮皮。"],
+    tip:"折疊時撒的糖量要大方，高溫下會焦糖化成標誌性脆殼；烘烤時奶油可能溢出，模具下方建議墊烤盤接油。" },
+
+  { id:"kouign_amann_black_sesame_lemon", name:"黑芝麻檸檬安妮卷", difficulty:"進階", category:"bread", panSize:"切成10×10cm正方形，放入單孔馬芬模或塔模烘烤", keywords:["安妮卷","黑芝麻","檸檬"],
+    yield:"依切割數量而定", temp:"190°C", time:"25-30分鐘",
+    equipment:["攪拌缸","擀麵棍","馬芬模或塔模","保鮮膜"],
+    ingredients:[{name:"高筋麵粉",amount:300,unit:"g"},{name:"冰水",amount:165,unit:"g"},{name:"速發酵母粉",amount:4,unit:"g"},{name:"鹽",amount:5,unit:"g"},{name:"細砂糖",amount:15,unit:"g"},{name:"融化無鹽奶油",amount:20,unit:"g"},{name:"裹入用發酵奶油",amount:180,unit:"g"},{name:"折疊用細砂糖",amount:120,unit:"g"},{name:"烘烤黑芝麻粉",amount:50,unit:"g"},{name:"新鮮檸檬皮屑",amount:2,unit:"顆量"}],
+    steps:["麵粉、水、酵母、鹽、糖、融化奶油揉成表面光滑的麵團，室溫初發40分鐘，擀平冷藏鬆弛1小時。","將細砂糖、烤香黑芝麻粉與新鮮檸檬皮屑在碗中混合揉搓，使檸檬精油與芝麻香氣充分被糖吸附，即為風味糖。","裹入發酵奶油進行第一次三折；第二次和第三次三折時，將調配好的黑芝麻檸檬糖大量均勻撒在麵皮上，隨折疊包裹進去，每次折疊後冷藏鬆弛。","擀開至0.4公分厚，切成10×10公分正方形，四角向中央對折捏攏，裝入塗奶油的模具中。","放入預熱190°C的烤箱，烘烤25-30分鐘，至表面呈現油亮琥珀黑褐色焦糖狀即可出爐。"],
+    tip:"黑芝麻油脂與檸檬皮屑的香氣在高溫焦糖化時最迷人，風味糖務必搓揉到香氣釋放再使用。" },
+
+  { id:"baguette_classic", name:"正統法式長棍", difficulty:"中等", category:"bread", keywords:["法棍","baguette","歐式麵包"],
+    yield:"約2-3條", temp:"235°C（含蒸氣）", time:"22-25分鐘",
+    equipment:["攪拌盆","發酵布","割紋刀","烤箱用石板或鐵盤"],
+    ingredients:[{name:"高筋麵粉",amount:500,unit:"g"},{name:"冰水",amount:350,unit:"g"},{name:"麥芽精",amount:2,unit:"g"},{name:"鹽",amount:10,unit:"g"},{name:"低糖乾酵母",amount:2,unit:"g"}],
+    steps:["將麵粉、麥芽精與330g冰水倒入大攪拌盆中，用手粗略混合至看不見乾粉，蓋保鮮膜室溫靜置鬆弛30-40分鐘進行自我分解。","加入酵母、鹽與剩餘20g冰水，慢速攪拌5-6分鐘至酵母完全溶解、能拉出均勻略粗糙的薄膜即可（切忌過度打發）。","室溫發酵1小時（第30分鐘時將麵團四周向中心折疊翻面一次），隨後密封送入4-6°C冷藏室低溫發酵15小時。","取出麵團均勻分割成每個約300g，輕輕滾圓鬆弛25分鐘，輕壓排去大氣泡，由上而下輕柔折疊捲起，搓成長約38-40公分的細長條狀。","排放在發酵布上，室溫二次發酵45-60分鐘。","烤箱連同石板、發熱鐵盤預熱至235°C，麵團轉移至移板，用剃刀斜劃出5道平行割紋。送入烤箱並倒入一杯沸水製造蒸汽，烘烤22-25分鐘至表皮深黃、敲擊有清脆空響聲。"],
+    tip:"15小時低溫慢發酵是法棍金黃酥殼與大孔洞組織的關鍵，急不得；入爐製造蒸氣能讓表皮更脆亮。" },
+
+  { id:"baguette_walnut_cranberry", name:"核桃蔓越莓法棍", difficulty:"中等", category:"bread", keywords:["法棍","核桃","蔓越莓"],
+    yield:"約2-3條", temp:"230°C（含蒸氣）", time:"22-25分鐘",
+    equipment:["攪拌盆","發酵布","割紋刀","烤箱用石板或鐵盤"],
+    ingredients:[{name:"高筋麵粉",amount:500,unit:"g"},{name:"冰水",amount:350,unit:"g"},{name:"麥芽精",amount:2,unit:"g"},{name:"鹽",amount:10,unit:"g"},{name:"低糖乾酵母",amount:2,unit:"g"},{name:"烤香核桃碎",amount:80,unit:"g"},{name:"蔓越莓乾（泡軟擠乾）",amount:60,unit:"g"}],
+    steps:["按照正統法式長棍的方式進行自我分解與揉麵。","在揉麵的最後一分鐘，將烤香核桃碎與泡軟擠乾的蔓越莓乾倒入攪拌缸中，慢速攪拌1分鐘，使其均勻分布在麵團內。","同法棍做法進行15小時低溫冷藏發酵，分割成約300g小份，滾圓鬆弛後整形成細長條狀。","排放在發酵布上，室溫二次發酵45-60分鐘。","以230°C（含高壓蒸氣）烘烤22-25分鐘，出爐放涼。"],
+    tip:"核桃油脂能軟化法棍的硬脆骨架，蔓越莓乾務必先擠乾水分，否則麵團會過濕影響整形。" },
+
+  { id:"bretzel_german", name:"德風脆皮鹼水結", difficulty:"中等", category:"bread", keywords:["蝴蝶餅","pretzel","鹼水麵包"],
+    yield:"約8-10個", temp:"200°C", time:"15-18分鐘",
+    equipment:["橡膠手套","耐鹼容器","烤盤","耐高溫烤墊"],
+    ingredients:[{name:"高筋麵粉",amount:500,unit:"g"},{name:"冰水",amount:150,unit:"g"},{name:"低糖乾酵母",amount:5,unit:"g"},{name:"鹽",amount:8,unit:"g"},{name:"細砂糖",amount:10,unit:"g"},{name:"無鹽奶油",amount:30,unit:"g"},{name:"溫水（鹼水用）",amount:1000,unit:"g"},{name:"食品級氫氧化鈉",amount:40,unit:"g"},{name:"裝飾粗鹽粒",amount:0,unit:"適量"}],
+    steps:["⚠️ 安全提醒：氫氧化鈉（鹼）具強腐蝕性，全程務必配戴橡膠手套與護目鏡操作，避免接觸皮膚和眼睛，鹼液不可使用鋁製容器盛裝，若不慎接觸皮膚請立即用大量清水沖洗並就醫。","將麵粉、水、酵母、鹽、糖、無鹽奶油揉成一個扎實、水分偏乾的光滑麵團。","分割成每個約80g，滾圓鬆弛，搓成中間粗、兩端細尖的長條狀，將兩端交叉扭轉後折回貼在最粗的部分，捏出經典蝴蝶結形。","整形好的麵團排在盤上，不蓋保鮮膜，直接送入冷凍庫冷凍30-40分鐘，使表面結凍變硬。","戴上橡膠手套，將冷凍硬化的麵團放入調配好的4%鹼水（溫水中緩慢加入氫氧化鈉攪拌均勻，切勿將水倒入鹼中）中浸泡30秒，小心撈出瀝乾，排在鋪有耐高溫烤墊的烤盤上。","用刀在最粗的底部橫向深劃一刀，撒上裝飾粗鹽粒。送入預熱200°C的烤箱，烘烤15-18分鐘，至呈現德風深琥珀色亮麗外殼即可出爐。"],
+    tip:"⚠️ 此食譜含腐蝕性化學藥劑操作步驟，務必具備相關安全知識與防護裝備再嘗試；不熟悉鹼水處理者可用「烘焙小蘇打水」（小蘇打粉加水煮滾）替代，雖然顏色與風味較淡但安全許多。" },
+
+  { id:"ciabatta_potato", name:"高水分馬鈴薯恰巴塔", difficulty:"中等", category:"bread", keywords:["恰巴塔","拖鞋麵包","義式麵包"],
+    yield:"約4-6個", temp:"230°C（含蒸氣）", time:"20-22分鐘",
+    equipment:["攪拌機","方形發酵盒","刮板","烤箱用石板"],
+    ingredients:[{name:"高筋麵粉",amount:250,unit:"g"},{name:"中筋麵粉",amount:250,unit:"g"},{name:"馬鈴薯雪花粉",amount:35,unit:"g"},{name:"冰水",amount:410,unit:"g"},{name:"鹽",amount:10,unit:"g"},{name:"低糖乾酵母",amount:4,unit:"g"},{name:"橄欖油",amount:15,unit:"g"}],
+    steps:["將高筋麵粉、中筋麵粉、馬鈴薯雪花粉與380g冰水在大盆中混合，靜置30分鐘進行自我分解。","加入酵母、鹽與剩餘30g冰水，用攪拌機高速攪打，隨後緩慢淋入橄欖油攪打至乳化均勻，麵團質地非常濕軟呈半流質狀。","倒入塗有橄欖油的方形盒中。發酵的2小時內，每隔30分鐘雙手沾水從四周向中間折疊（共折疊4次），建立天然麵筋網絡並鎖住空氣。","檯面撒上大量低粉防黏，將濕軟麵團倒在檯面上，用刮板小心分割成方形小塊，輕輕轉移至烤紙上，避免排掉內部大氣泡。","以230°C（含高壓蒸氣）烘烤20-22分鐘，至表面金黃硬脆、內部濕潤且有巨大海綿狀氣孔即可出爐。"],
+    tip:"含水量高達82%，操作時雙手沾水防黏；馬鈴薯雪花粉能大幅提升保水力，做出濕潤Q彈的內部組織。" }
 ];
 
 /* ---------------- 自訂食譜 / 編輯覆寫 儲存 ---------------- */
@@ -1048,13 +1577,22 @@ function findRecipeById(id) {
 let activeRecipe = null;
 
 const FAV_KEY = 'bakingFavorites';
+let favoritesCache = null;
 function getFavorites() {
+  if (favoritesCache) return favoritesCache;
   try {
     const raw = localStorage.getItem(FAV_KEY);
-    return raw ? JSON.parse(raw) : [];
+    favoritesCache = raw ? JSON.parse(raw) : [];
   } catch (e) {
-    return [];
+    console.warn('讀取收藏清單失敗（localStorage 無法使用）：', e);
+    favoritesCache = [];
   }
+  return favoritesCache;
+}
+function saveFavorites(favs) {
+  favoritesCache = favs;
+  try { localStorage.setItem(FAV_KEY, JSON.stringify(favs)); }
+  catch (e) { console.warn('儲存收藏清單失敗（localStorage 無法使用，重新整理後會消失）：', e); }
 }
 function isFavorite(id) {
   return getFavorites().includes(id);
@@ -1063,7 +1601,7 @@ function toggleFavorite(id) {
   const favs = getFavorites();
   const idx = favs.indexOf(id);
   if (idx >= 0) { favs.splice(idx, 1); } else { favs.push(id); }
-  try { localStorage.setItem(FAV_KEY, JSON.stringify(favs)); } catch (e) {}
+  saveFavorites(favs);
   renderRecipeGrid(currentFilteredList());
   renderFavoritesGrid();
   if (activeRecipe && activeRecipe.id === id) {
@@ -1072,7 +1610,19 @@ function toggleFavorite(id) {
 }
 let lastFilter = null;
 function currentFilteredList() {
-  return lastFilter !== null ? lastFilter : getAllRecipes();
+  return lastFilter !== null ? lastFilter : getFeaturedRecipes();
+}
+
+function getFeaturedRecipes() {
+  return getAllRecipes().filter(r => r.difficulty === '簡單').slice(0, 5);
+}
+
+function updateRecipeGridHint(isSearching) {
+  const hint = document.getElementById('recipeGridHint');
+  if (!hint) return;
+  if (isSearching) { hint.style.display = 'none'; return; }
+  hint.style.display = 'block';
+  hint.textContent = `精選 ${getFeaturedRecipes().length} 道簡單甜點，輸入關鍵字可搜尋全部 ${getAllRecipes().length} 道食譜`;
 }
 
 function renderRecipeGrid(filtered) {
@@ -1080,15 +1630,14 @@ function renderRecipeGrid(filtered) {
   const grid = document.getElementById('recipeGrid');
   const emptyMsg = document.getElementById('emptyMsg');
   grid.innerHTML = '';
-  const all = getAllRecipes();
-  const list = filtered.length ? filtered : all;
+  const list = filtered;
   emptyMsg.style.display = filtered.length === 0 && document.getElementById('searchInput').value.trim() !== '' ? 'block' : 'none';
   list.forEach(r => {
     const chip = document.createElement('div');
     chip.className = 'recipe-chip';
     chip.setAttribute('role', 'button');
     chip.setAttribute('tabindex', '0');
-    chip.innerHTML = `${r.name}<span class="meta">${r.yield}</span><button class="fav-star ${isFavorite(r.id) ? 'active' : ''}" aria-label="收藏${r.name}">★</button>`;
+    chip.innerHTML = `<span class="recipe-chip-icon">${categoryIconHtml(r.category, 24)}</span><span class="recipe-chip-body">${r.name}<span class="meta">${r.yield}</span></span><button class="fav-star ${isFavorite(r.id) ? 'active' : ''}" aria-label="收藏${r.name}">★</button>`;
     chip.addEventListener('click', () => showDetail(r));
     chip.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showDetail(r); } });
     chip.querySelector('.fav-star').addEventListener('click', (e) => { e.stopPropagation(); toggleFavorite(r.id); });
@@ -1108,7 +1657,7 @@ function renderFavoritesGrid() {
     chip.className = 'recipe-chip';
     chip.setAttribute('role', 'button');
     chip.setAttribute('tabindex', '0');
-    chip.innerHTML = `${r.name}<span class="meta">${r.yield}</span><button class="fav-star active" aria-label="移除收藏${r.name}">★</button>`;
+    chip.innerHTML = `<span class="recipe-chip-icon">${categoryIconHtml(r.category, 24)}</span><span class="recipe-chip-body">${r.name}<span class="meta">${r.yield}</span></span><button class="fav-star active" aria-label="移除收藏${r.name}">★</button>`;
     chip.addEventListener('click', () => { switchPage('recipe'); showDetail(r); });
     chip.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); switchPage('recipe'); showDetail(r); } });
     chip.querySelector('.fav-star').addEventListener('click', (e) => { e.stopPropagation(); toggleFavorite(r.id); });
@@ -1119,7 +1668,8 @@ function renderFavoritesGrid() {
 function searchRecipes() {
   const q = document.getElementById('searchInput').value.trim().toLowerCase();
   const all = getAllRecipes();
-  if (!q) { renderRecipeGrid(all); return; }
+  if (!q) { renderRecipeGrid(getFeaturedRecipes()); updateRecipeGridHint(false); return; }
+  updateRecipeGridHint(true);
   const filtered = all.filter(r =>
     r.name.toLowerCase().includes(q) || (r.keywords || []).some(k => k.toLowerCase().includes(q))
   );
@@ -1130,8 +1680,8 @@ function showDetail(recipe) {
   activeRecipe = recipe;
   document.getElementById('editCard').style.display = 'none';
   document.getElementById('detailCard').style.display = 'block';
-  document.getElementById('detailName').textContent = recipe.name;
-  document.getElementById('detailMeta').textContent = `份量：${recipe.yield} ・ 溫度：${recipe.temp} ・ 時間：${recipe.time}`;
+  document.getElementById('detailNameText').textContent = recipe.name;
+  document.getElementById('detailMeta').textContent = `份量：${recipe.yield} ・ 溫度：${recipe.temp} ・ 時間：${recipe.time}` + (recipe.panSize ? ` ・ 模具：${recipe.panSize}` : '');
   const detailPhoto = document.getElementById('detailPhoto');
   if (recipe.photo) { detailPhoto.src = recipe.photo; detailPhoto.style.display = 'block'; }
   else { detailPhoto.style.display = 'none'; }
@@ -1228,6 +1778,7 @@ function openEditor(recipe, prefillSteps) {
     document.getElementById('editYield').value = recipe.yield;
     document.getElementById('editTemp').value = recipe.temp;
     document.getElementById('editTime').value = recipe.time;
+    document.getElementById('editPanSize').value = recipe.panSize || '';
     document.getElementById('editEquipment').value = recipe.equipment.join(',');
     recipe.ingredients.forEach(ing => createEditIngredientRow(ing.name, ing.amount, ing.unit));
     document.getElementById('editSteps').value = recipe.steps.join('\n');
@@ -1243,6 +1794,7 @@ function openEditor(recipe, prefillSteps) {
     document.getElementById('editYield').value = '';
     document.getElementById('editTemp').value = '';
     document.getElementById('editTime').value = '';
+    document.getElementById('editPanSize').value = '';
     document.getElementById('editEquipment').value = '';
     createEditIngredientRow('', 0, 'g');
     document.getElementById('editSteps').value = prefillSteps || '';
@@ -1292,6 +1844,7 @@ document.getElementById('saveRecipeBtn').addEventListener('click', () => {
     yield: document.getElementById('editYield').value.trim() || '依個人份量',
     temp: document.getElementById('editTemp').value.trim() || '依個人作法',
     time: document.getElementById('editTime').value.trim() || '依個人作法',
+    panSize: document.getElementById('editPanSize').value.trim(),
     equipment,
     ingredients,
     steps,
@@ -1318,13 +1871,12 @@ document.getElementById('saveRecipeBtn').addEventListener('click', () => {
     saveCustomRecipes(customList);
     const favs = getFavorites();
     favs.push(newId);
-    try { localStorage.setItem(FAV_KEY, JSON.stringify(favs)); } catch (e) {}
+    saveFavorites(favs);
     editingRecipeId = newId;
   }
 
   document.getElementById('editCard').style.display = 'none';
   refreshCostRecipeSelect();
-  renderRecipeGrid(getAllRecipes());
   renderFavoritesGrid();
   searchRecipes();
   const saved = findRecipeById(editingRecipeId);
@@ -1337,17 +1889,18 @@ document.getElementById('deleteRecipeBtn').addEventListener('click', () => {
   const customList = getCustomRecipes().filter(r => r.id !== editingRecipeId);
   saveCustomRecipes(customList);
   const favs = getFavorites().filter(id => id !== editingRecipeId);
-  try { localStorage.setItem(FAV_KEY, JSON.stringify(favs)); } catch (e) {}
+  saveFavorites(favs);
   document.getElementById('editCard').style.display = 'none';
   document.getElementById('detailCard').style.display = 'none';
   activeRecipe = null;
   refreshCostRecipeSelect();
-  renderRecipeGrid(getAllRecipes());
   renderFavoritesGrid();
   searchRecipes();
 });
 
-renderRecipeGrid(getAllRecipes());
+document.getElementById('favEmptyGoSearchBtn').addEventListener('click', () => switchPage('recipe'));
+
+searchRecipes();
 renderFavoritesGrid();
 
 function toMl(amount, unit) {
@@ -1649,7 +2202,25 @@ function renderShopList(){
   const list=getShopList();
   const el=document.getElementById('shopList');
   el.innerHTML='';
-  if(!list.length){el.innerHTML='<li style="padding:1rem 0;font-size:14px;color:var(--ink-soft);text-align:center;">清單是空的</li>';return;}
+  if(!list.length){
+    el.innerHTML = `<li style="list-style:none;display:block;cursor:default;"><div class="empty-state" style="display:flex;flex-direction:column;align-items:center;">
+      <svg class="empty-illustration" viewBox="0 0 200 200" fill="none">
+        <path d="M74 70 C74 44 98 44 98 70" fill="none" stroke="#B5743C" stroke-width="6" stroke-linecap="round"/>
+        <path d="M102 70 C102 44 126 44 126 70" fill="none" stroke="#B5743C" stroke-width="6" stroke-linecap="round"/>
+        <rect x="54" y="68" width="92" height="18" rx="5" fill="#E7D2AE" stroke="#B5743C" stroke-width="6"/>
+        <path d="M58 86 L142 86 L150 168 Q150 174 144 174 L56 174 Q50 174 50 168 Z" fill="#FBF3E5" stroke="#B5743C" stroke-width="6" stroke-linejoin="round"/>
+        <g stroke="#D8B98A" stroke-width="5" stroke-linecap="round" stroke-dasharray="2 10">
+          <line x1="72" y1="112" x2="128" y2="112"/><line x1="72" y1="132" x2="128" y2="132"/><line x1="72" y1="152" x2="112" y2="152"/>
+        </g>
+      </svg>
+      <p class="empty-title">購物清單是空的</p>
+      <p class="empty-desc">從食譜一鍵加入需要的食材，<br>採買不漏買</p>
+      <button class="empty-cta" id="shopEmptyGoRecipeBtn">🔍 瀏覽食譜</button>
+    </div></li>`;
+    const goBtn = document.getElementById('shopEmptyGoRecipeBtn');
+    if (goBtn) goBtn.addEventListener('click', () => switchPage('recipe'));
+    return;
+  }
   list.forEach((item,i)=>{
     const li=document.createElement('li');
     li.className='shop-item'+(item.done?' checked':'');
@@ -1707,7 +2278,28 @@ function renderNoteList(){
   const notes=getNotes().sort((a,b)=>b.date.localeCompare(a.date));
   const el=document.getElementById('noteList');
   el.innerHTML='';
-  if(!notes.length){el.innerHTML='<div class="note-empty">還沒有筆記，按「新增筆記」開始記錄吧！</div>';return;}
+  if(!notes.length){
+    el.innerHTML = `<div class="empty-state">
+      <svg class="empty-illustration" viewBox="0 0 200 200" fill="none">
+        <rect x="58" y="36" width="98" height="128" rx="12" fill="#FBF3E5" stroke="#B5743C" stroke-width="6"/>
+        <line x1="58" y1="36" x2="58" y2="164" stroke="#B5743C" stroke-width="6"/>
+        <g stroke="#B5743C" stroke-width="5" fill="none" stroke-linecap="round">
+          <path d="M44 50 q-8 8 0 16"/><path d="M44 78 q-8 8 0 16"/><path d="M44 106 q-8 8 0 16"/><path d="M44 134 q-8 8 0 16"/>
+        </g>
+        <rect x="78" y="58" width="58" height="16" rx="6" fill="#E7D2AE" stroke="#B5743C" stroke-width="4"/>
+        <g stroke="#D8B98A" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="2 9">
+          <line x1="78" y1="96" x2="138" y2="96"/><line x1="78" y1="114" x2="138" y2="114"/><line x1="78" y1="132" x2="120" y2="132"/>
+        </g>
+        <g transform="rotate(34 140 150)"><rect x="128" y="120" width="13" height="56" rx="6" fill="#C2854A" stroke="#9A5E2C" stroke-width="4"/><path d="M128 168 L141 168 L134.5 182 Z" fill="#5C3A22"/></g>
+      </svg>
+      <p class="empty-title">還沒有試作筆記</p>
+      <p class="empty-desc">記下每次烘焙的心得與調整，<br>越做越好吃</p>
+      <button class="empty-cta" id="notesEmptyAddBtn">📝 新增筆記</button>
+    </div>`;
+    const addBtn = document.getElementById('notesEmptyAddBtn');
+    if (addBtn) addBtn.addEventListener('click', () => document.getElementById('addNoteBtn').click());
+    return;
+  }
   notes.forEach(n=>{
     const div=document.createElement('div');
     div.className='note-item';
