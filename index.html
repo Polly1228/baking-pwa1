@@ -12,6 +12,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700&family=Noto+Sans+TC:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
   :root {
     --cream: #FAF5EC;
@@ -347,10 +348,12 @@
   .timer-item { background: var(--cream); border: 1px solid var(--line); border-radius: 16px; padding: 1.25rem 1.25rem 1rem; margin-bottom: 1rem; }
   .timer-item .timer-label { font-size: 14px; font-weight: 600; margin-bottom: 10px; display:flex; align-items:center; gap:8px; }
   .timer-item .timer-label input { flex:1; background:none; border:none; border-bottom:1px solid var(--line); border-radius:0; font-size:14px; font-weight:600; padding:0 4px; height:28px; color:var(--ink); }
-  .timer-display { font-size: 46px; font-weight: 700; font-family:'Inter',sans-serif; text-align:center; letter-spacing:0.06em; margin: 6px 0 12px; color: var(--ink); transition: color 0.3s; }
+  .timer-display { position:absolute; left:0; right:0; top:40px; height:40px; line-height:40px; font-size: 26px; font-weight: 700; font-family:'Inter',sans-serif; text-align:center; letter-spacing:0.06em; margin:0; color: var(--ink); background: var(--cream); border-radius:6px; z-index:3; pointer-events:none; transition: color 0.3s; }
   .timer-display.running { color: var(--rust); }
   .timer-display.done { color: var(--rust-deep); }
   .timer-btns { display:flex; gap:8px; justify-content:center; margin-top:10px; }
+  .timer-btns .btn-alarm { background: var(--rust-deep); color:#fff; animation: alarmPulse 1s ease-in-out infinite; }
+  @keyframes alarmPulse { 0%,100%{opacity:1;} 50%{opacity:0.55;} }
 
   /* 滾輪選取器 */
   .drum-picker { display:flex; align-items:center; justify-content:center; gap:4px; margin-bottom:10px; position:relative; }
@@ -384,6 +387,9 @@
   .note-item .note-date { font-size:12px; color:var(--ink-soft); }
   .note-item .note-stars { color:var(--rust); font-size:13px; }
   .note-item .note-preview { font-size:13px; color:var(--ink-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .note-item .note-body { display:flex; gap:10px; align-items:flex-start; }
+  .note-item .note-thumb { width:48px; height:48px; border-radius:8px; object-fit:cover; flex:0 0 auto; }
+  .note-item .note-text { flex:1; min-width:0; }
   .star-btn { appearance:none; border:none; background:none; font-size:22px; cursor:pointer; color:var(--line); padding:0 2px; }
   .star-btn.active { color:var(--rust); }
   .note-empty { font-size:14px; color:var(--ink-soft); text-align:center; padding:2rem 0; }
@@ -495,7 +501,11 @@
       <input id="searchInput" type="text" placeholder="例如：餅乾、提拉米蘇、戚風蛋糕" />
       <div class="recipe-grid" id="recipeGrid"></div>
       <p class="empty-msg" id="emptyMsg" style="display:none;">找不到符合的甜點，目前資料庫包含以下品項，可參考下方清單。</p>
-      <button class="btn" id="newRecipeBtn" style="margin-top:1rem;">+ 新增自己的食譜</button>
+      <div style="display:flex;gap:8px;margin-top:1rem;flex-wrap:wrap;">
+        <button class="btn" id="newRecipeBtn">+ 新增自己的食譜</button>
+        <button class="btn" id="scanRecipeBtn">📷 掃描食譜</button>
+      </div>
+      <input type="file" id="scanRecipeInput" accept="image/*" capture="environment" style="display:none;" />
     </div>
 
     <div class="card" id="detailCard" style="display:none;">
@@ -508,6 +518,7 @@
         </div>
       </div>
       <p class="detail-meta" id="detailMeta"></p>
+      <img id="detailPhoto" style="display:none;width:100%;border-radius:12px;margin-bottom:1.25rem;object-fit:cover;max-height:260px;" />
 
       <div class="scale-row">
         <label>份量倍數</label>
@@ -541,6 +552,15 @@
       <div style="margin-bottom:1rem;">
         <label>器具（用逗號分隔）</label>
         <input id="editEquipment" type="text" placeholder="例如：烤盤,打蛋器,刮刀" />
+      </div>
+      <div style="margin-bottom:1.25rem;">
+        <label>食譜照片（選填）</label>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <img id="editPhotoPreview" style="display:none;width:64px;height:64px;border-radius:8px;object-fit:cover;" />
+          <button type="button" class="btn" id="editPhotoBtn">📷 拍照 / 選擇照片</button>
+          <button type="button" class="btn-remove" id="editPhotoRemoveBtn" style="display:none;">移除照片</button>
+        </div>
+        <input type="file" id="editPhotoInput" accept="image/*" capture="environment" style="display:none;" />
       </div>
 
       <label style="margin-bottom:6px;">材料</label>
@@ -717,6 +737,15 @@
         <label>筆記內容</label>
         <textarea id="noteContent" rows="5" style="width:100%;font-family:'Noto Sans TC','Inter',sans-serif;font-size:15px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--cream);color:var(--ink);"></textarea>
       </div>
+      <div style="margin-bottom:1.25rem;">
+        <label>照片（選填）</label>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <img id="notePhotoPreview" style="display:none;width:64px;height:64px;border-radius:8px;object-fit:cover;" />
+          <button type="button" class="btn" id="notePhotoBtn">📷 拍照 / 選擇照片</button>
+          <button type="button" class="btn-remove" id="notePhotoRemoveBtn" style="display:none;">移除照片</button>
+        </div>
+        <input type="file" id="notePhotoInput" accept="image/*" capture="environment" style="display:none;" />
+      </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn" id="saveNoteBtn">儲存</button>
         <button class="btn" id="cancelNoteBtn">取消</button>
@@ -730,6 +759,64 @@
 <footer>純前端計算，所有資料只留在這台裝置上。</footer>
 
 <script>
+
+/* ════════════════════════════
+   照片工具：壓縮成小尺寸 base64
+════════════════════════════ */
+function compressImage(file, maxDim) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > h && w > maxDim) { h = Math.round(h * maxDim / w); w = maxDim; }
+        else if (h > maxDim) { w = Math.round(w * maxDim / h); h = maxDim; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.75));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ════════════════════════════
+   掃描食譜（OCR）
+════════════════════════════ */
+document.getElementById('scanRecipeBtn').addEventListener('click', () => {
+  document.getElementById('scanRecipeInput').click();
+});
+document.getElementById('scanRecipeInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  const btn = document.getElementById('scanRecipeBtn');
+  const originalText = btn.textContent;
+  btn.textContent = '辨識中…請稍候';
+  btn.disabled = true;
+  try {
+    const photo = await compressImage(file, 1000);
+    const result = await Tesseract.recognize(photo, 'chi_tra+eng', {});
+    const text = (result.data.text || '').split('\n').map(l => l.trim()).filter(Boolean).join('\n');
+    openEditor(null, text);
+    if (text) {
+      setEditPhoto(photo);
+      alert('已掃描完成！文字已自動帶入「步驟」欄位，請檢查並手動把材料、份量等資訊填寫到正確欄位（OCR辨識可能有誤，請務必校對）。');
+    } else {
+      alert('沒有辨識到文字，可能照片不夠清楚，你仍可以手動輸入食譜內容。');
+    }
+  } catch (err) {
+    alert('掃描失敗，請重新嘗試或改用手動輸入。');
+  } finally {
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
+});
 
 // Splash Screen
 window.addEventListener('load', () => {
@@ -851,7 +938,77 @@ const recipes = [
     equipment:["平底鍋","打蛋器","刮刀","量杯"],
     ingredients:[{name:"低筋麵粉",amount:250,unit:"g"},{name:"泡打粉",amount:10,unit:"g"},{name:"鹽",amount:2,unit:"g"},{name:"細砂糖",amount:30,unit:"g"},{name:"全蛋",amount:2,unit:"顆"},{name:"牛奶",amount:250,unit:"ml"},{name:"融化黃油",amount:30,unit:"g"}],
     steps:["麵粉、泡打粉、鹽、糖混合過篩。","蛋、牛奶、融化黃油攪打均勻。","將濕料倒入乾料中，輕拌至剛好混合，有些顆粒沒關係。","平底鍋小火預熱，刷一層薄油，倒入約60ml麵糊。","表面出現氣泡且邊緣定型時翻面，煎至兩面金黃即可。"],
-    tip:"麵糊靜置10分鐘讓筋性鬆弛，煎出來會更鬆軟。" }
+    tip:"麵糊靜置10分鐘讓筋性鬆弛，煎出來會更鬆軟。" },
+
+  { id:"tiramisu_classic", name:"正統義式提拉米蘇", keywords:["提拉米蘇","tiramisu","免烤","義式經典"],
+    yield:"4人份", temp:"免烤", time:"冷藏至少4小時",
+    equipment:["打蛋器","鋼盆x2","刷子","小篩子","容器"],
+    ingredients:[{name:"馬斯卡邦起司（室溫）",amount:250,unit:"g"},{name:"雞蛋",amount:2,unit:"顆"},{name:"幼砂糖",amount:40,unit:"g"},{name:"濃縮咖啡",amount:25,unit:"g"},{name:"馬沙拉酒",amount:40,unit:"g"},{name:"義大利手指餅乾",amount:8,unit:"塊"},{name:"鹽",amount:0,unit:"少許"},{name:"無糖純可可粉",amount:0,unit:"適量"}],
+    steps:["蛋白與蛋黃分開置於不同鋼盆，濃縮咖啡與馬沙拉酒混合備用。","蛋白加一小撮鹽打發至挺立無光澤狀。","蛋黃加幼砂糖打至顏色變淺、質地濃稠如優格狀。","加入室溫馬斯卡邦起司，慢速拌勻至光滑無顆粒。","將蛋白霜倒入起司蛋黃糊中，刮刀輕拌混合，避免消泡。","容器底部鋪一層手指餅乾，刷上咖啡酒液（不可浸泡過久）。","倒入起司糊抹平，重複鋪第二層餅乾與起司糊。","表面均勻篩上可可粉，冷藏至少4小時（或冷藏過夜）後享用。"],
+    tip:"可用Rum、Kahlua或Brandy替代馬沙拉酒；傳統作法不含鮮奶油與吉利丁，口感更輕盈濕潤。" },
+
+  { id:"souffle_lemon", name:"檸檬舒芙蕾", keywords:["舒芙蕾","souffle","檸檬","法式甜點"],
+    yield:"4個（10盎司模具）", temp:"190°C", time:"12-14分鐘",
+    equipment:["舒芙蕾烤模x4","打蛋器","中型鍋","刮刀","保鮮膜"],
+    ingredients:[{name:"無鹽奶油（室溫，另備塗模用）",amount:3,unit:"大匙"},{name:"細砂糖（另備塗模用）",amount:3,unit:"大匙"},{name:"蛋黃",amount:2,unit:"顆"},{name:"蛋白（室溫）",amount:5,unit:"顆"},{name:"玉米粉",amount:1.5,unit:"大匙"},{name:"溫牛奶",amount:0.33,unit:"杯"},{name:"新鮮檸檬汁",amount:0.25,unit:"杯"},{name:"檸檬皮屑",amount:1.5,unit:"小匙"},{name:"香草精",amount:1.5,unit:"小匙"},{name:"塔塔粉",amount:0.5,unit:"小匙"},{name:"鹽",amount:0,unit:"一撮"},{name:"糖粉",amount:0,unit:"裝飾用"}],
+    steps:["烤箱預熱190°C。模具內壁塗軟化奶油、灑細砂糖防黏，冷藏5-10分鐘至奶油固化。","蛋黃與3大匙糖攪拌至濃稠變白，拌入玉米粉，緩緩倒入一半溫牛奶拌勻。","倒入鍋中加剩餘溫牛奶，中小火加熱攪拌5-6分鐘至濃稠。","離火拌入奶油、檸檬汁、檸檬皮屑與香草精，表面蓋保鮮膜室溫靜置15分鐘冷卻。","蛋白、塔塔粉、鹽打發，分次加1大匙糖，打至堅挺倒扣不滑落。","取1/3蛋白霜拌入檸檬蛋黃糊，再分2次加入剩餘蛋白霜切拌均勻。","麵糊倒入冷藏好的模具抹平，邊緣沾黏處用紙巾擦淨。","烤12-14分鐘至膨脹呈金黃色，出爐撒糖粉立即享用。"],
+    tip:"蛋白打發盆必須無油無水，模具防黏處理要徹底冷藏定型，出爐後會迅速消塌，須趁熱立刻上桌。" },
+
+  { id:"marble_angel", name:"大理石天使蛋糕", keywords:["天使蛋糕","angel cake","大理石蛋糕","乳沫類蛋糕"],
+    yield:"6個6吋活動模（每個約320g）", temp:"180-200°C", time:"約20分鐘",
+    equipment:["6吋活動模x6","攪拌缸","擠花袋（不加花嘴）","刮刀","篩網"],
+    ingredients:[{name:"桔子水",amount:286,unit:"g"},{name:"鹽",amount:4,unit:"g"},{name:"沙拉油",amount:151,unit:"g"},{name:"低筋麵粉",amount:337,unit:"g"},{name:"發粉",amount:15,unit:"g"},{name:"蛋白",amount:969,unit:"g"},{name:"塔塔粉",amount:43,unit:"g"},{name:"細砂糖",amount:328,unit:"g"},{name:"巧克力醬",amount:0,unit:"適量"}],
+    steps:["低筋麵粉與發粉過篩備用。","桔子水、鹽、沙拉油拌勻，加入過篩的麵粉與發粉拌成無粉粒的蛋黃麵糊。","蛋白與塔塔粉打至濕性發泡，分次加糖打至乾性發泡前夕（尖峰呈鉤狀）。","取1/3蛋白糊加入蛋黃麵糊拌勻，再倒回剩餘蛋白糊輕柔拌勻。","加入巧克力醬，用刮刀稍微拌1-2下做出大理石紋（勿拌勻）。","裝入擠花袋，均勻擠入6個模具（每個約320g）。","180-200°C烤約7分鐘上色後調頭，轉溫續烤13分鐘（共20分鐘），出爐倒扣冷卻。"],
+    tip:"蛋白打發狀態與切拌力道是大理石紋路成敗關鍵，過度攪拌會讓紋路消失。" },
+
+  { id:"ketobrownie", name:"低醣生酮布朗尼", keywords:["生酮","低醣","布朗尼","keto brownie"],
+    yield:"1個長條模或方形模", temp:"170°C", time:"約30分鐘",
+    equipment:["長條模或方形模","隔水加熱鍋","打蛋器","刮刀","烘焙紙"],
+    ingredients:[{name:"雞蛋",amount:3,unit:"顆"},{name:"杏仁粉",amount:80,unit:"g"},{name:"洋車前子粉",amount:2,unit:"大匙"},{name:"無糖純可可粉",amount:25,unit:"g"},{name:"甜菊糖",amount:30,unit:"g"},{name:"海鹽",amount:0.25,unit:"茶匙"},{name:"小蘇打粉",amount:1,unit:"茶匙"},{name:"無糖豆漿",amount:100,unit:"g"},{name:"無糖黑巧克力（70%以上）",amount:100,unit:"g"},{name:"無鹽奶油",amount:50,unit:"g"},{name:"核桃碎",amount:40,unit:"g"}],
+    steps:["無鹽奶油隔水融化，放至微溫備用。","雞蛋打散，加入融化奶油與無糖豆漿拌勻。","加入杏仁粉、可可粉、洋車前子粉、甜菊糖、海鹽、小蘇打粉，攪拌至滑順無結塊。","黑巧克力隔水融化後倒入麵糊拌勻。","拌入核桃碎，倒入鋪烘焙紙的模具抹平。","170°C烤約30分鐘，放涼後切塊。"],
+    tip:"以杏仁粉與洋車前子粉取代麵粉，適合低醣/生酮飲食；甜菊糖可依個人甜度喜好增減。" },
+
+  { id:"sugarfree_banana", name:"無糖熟香蕉杏仁蛋糕", keywords:["香蕉蛋糕","無糖","低醣","banana cake"],
+    yield:"1個長條蛋糕模或多個馬芬杯", temp:"170°C", time:"約30分鐘",
+    equipment:["長條蛋糕模或馬芬模","打蛋器","刮刀","烘焙紙"],
+    ingredients:[{name:"雞蛋",amount:3,unit:"顆"},{name:"熟香蕉（中型，帶黑斑為佳）",amount:3,unit:"根"},{name:"杏仁粉",amount:180,unit:"g"},{name:"赤藻糖醇",amount:50,unit:"g"},{name:"肉桂粉",amount:1,unit:"茶匙"},{name:"海鹽",amount:0.25,unit:"茶匙"},{name:"小蘇打粉",amount:1,unit:"茶匙"}],
+    steps:["香蕉壓成均勻香蕉泥。","雞蛋打入大盆中攪散。","加入赤藻糖醇、小蘇打粉、海鹽、肉桂粉與杏仁粉，攪拌均勻。","加入香蕉泥輕輕拌勻。","倒入鋪烘焙紙的模具（或分裝馬芬杯）約8分滿。","170°C烤約30分鐘，竹籤插入不沾即可出爐。"],
+    tip:"選用表皮帶黑斑的過熟香蕉香氣最濃，可依甜度自行酌減赤藻糖醇用量。" },
+
+  { id:"lowcarb_pannacotta", name:"低醣義式鮮奶酪", keywords:["奶酪","panna cotta","低醣","免烤"],
+    yield:"4-6杯", temp:"免烤", time:"冷藏至少4小時",
+    equipment:["小鍋","攪拌盆","玻璃杯","篩網"],
+    ingredients:[{name:"動物性鮮奶油",amount:300,unit:"g"},{name:"新鮮牛奶",amount:0,unit:"適量"},{name:"羅漢果糖",amount:30,unit:"g"},{name:"吉利丁粉",amount:4,unit:"g"},{name:"冷水",amount:25,unit:"g"}],
+    steps:["吉利丁粉撒入冷開水中混合，靜置10分鐘吸水膨脹。","隔水加熱使吉利丁化為清澈透明液體。","牛奶與羅漢果糖小火加熱至糖融化（不可煮沸）。","加入融化吉利丁液攪拌均勻。","倒入動物性鮮奶油徹底拌勻。","過篩後分裝至玻璃杯，冷藏至少4小時至凝固。"],
+    tip:"吉利丁粉需先泡發完全吸水再隔水融化，奶液不可煮沸以免影響凝固口感。" },
+
+  { id:"pb_oat_cookies", name:"無糖花生醬燕麥酥餅", keywords:["花生醬","燕麥","餅乾","高纖點心"],
+    yield:"約12-15片", temp:"180°C", time:"約15分鐘",
+    equipment:["鋼盆","木勺或刮刀","烤盤","烘焙紙"],
+    ingredients:[{name:"雞蛋",amount:1,unit:"顆"},{name:"無糖花生醬",amount:100,unit:"g"},{name:"傳統整粒燕麥片",amount:50,unit:"g"},{name:"椰子細粉",amount:50,unit:"g"},{name:"蜂蜜或椰糖",amount:30,unit:"g"},{name:"鹽",amount:0.25,unit:"茶匙"}],
+    steps:["雞蛋打散，加入蜂蜜、花生醬與鹽攪拌至均勻黏稠。","加入椰子細粉、燕麥片，翻壓拌勻至無乾粉顆粒。","分割成小球（約貢丸大小），排於鋪烘焙紙的烤盤上，隔烘焙紙壓扁至厚度一致。","180°C烤約15分鐘至邊緣金黃酥脆，放涼後即香脆。"],
+    tip:"可用生酮代糖取代蜂蜜或椰糖；壓扁麵團厚度需一致才能受熱均勻。" },
+
+  { id:"cookie_egg_butter", name:"原味雞蛋奶油手工餅乾", keywords:["手工餅乾","奶油餅乾","基礎入門"],
+    yield:"約15-20片", temp:"180°C", time:"約15分鐘",
+    equipment:["鋼盆","打蛋器","擀麵棍","烤盤","烘焙紙"],
+    ingredients:[{name:"無鹽奶油（室溫）",amount:120,unit:"g"},{name:"細砂糖",amount:60,unit:"g"},{name:"雞蛋液",amount:50,unit:"g"},{name:"低筋麵粉",amount:200,unit:"g"}],
+    steps:["奶油加細砂糖打發至顏色變白、質地蓬鬆。","蛋液分2-3次加入，每次攪打均勻再加下一次。","篩入低筋麵粉，輕柔拌至無乾粉的均勻麵團。","麵團分割揉成小球，排於鋪烘焙紙的烤盤上。","隔烘焙紙壓扁至厚度約0.5公分。","180°C烤約15分鐘至邊緣微金黃，放涼後食用。"],
+    tip:"奶油需打發至顏色變白呈蓬鬆羽毛狀，分次加蛋避免油水分離。" },
+
+  { id:"cookie_choc_almond", name:"巧克力杏仁手工餅乾", keywords:["手工餅乾","巧克力餅乾","杏仁","冷凍切片"],
+    yield:"約25-30片", temp:"180°C", time:"約20分鐘",
+    equipment:["鋼盆","打蛋器","篩網","保鮮膜","冰箱冷凍"],
+    ingredients:[{name:"無鹽奶油（室溫）",amount:230,unit:"g"},{name:"細砂糖",amount:190,unit:"g"},{name:"雞蛋液",amount:76,unit:"g"},{name:"可可粉",amount:46,unit:"g"},{name:"低筋麵粉",amount:385,unit:"g"},{name:"杏仁條或杏仁片",amount:76,unit:"g"}],
+    steps:["奶油與細砂糖混合打發至顏色變淺、質地蓬鬆。","蛋液分2-3次加入，每次拌勻再加下一次。","低筋麵粉與可可粉一同過篩，輕柔壓拌至無粉粒。","加入杏仁條或杏仁片翻拌均勻。","麵團分兩份，揉成長條柱狀，用烘焙紙包裹冷凍1小時硬化。","取出切成厚度0.5公分薄片，排於烤盤上。","180°C烤約20分鐘，放涼後食用。"],
+    tip:"切片厚度需一致，否則烘烤時容易部分不熟、部分烤焦。" },
+
+  { id:"cookie_cranberry", name:"經典蔓越莓手工餅乾", keywords:["手工餅乾","蔓越莓","冷凍切片"],
+    yield:"約20-25片", temp:"180°C", time:"約20分鐘",
+    equipment:["鋼盆","打蛋器","保鮮膜","冰箱冷凍","烤盤"],
+    ingredients:[{name:"低筋麵粉",amount:230,unit:"g"},{name:"雞蛋液",amount:50,unit:"g"},{name:"蔓越莓乾",amount:90,unit:"g"},{name:"無鹽奶油（室溫）",amount:120,unit:"g"},{name:"糖粉",amount:60,unit:"g"},{name:"動物性鮮奶油",amount:10,unit:"g"}],
+    steps:["奶油加糖粉打發至顏色變白、質地輕盈。","蛋液分2-3次加入，攪打均勻至完全吸收。","倒入動物性鮮奶油快速拌勻。","篩入低筋麵粉，拌至無乾粉顆粒。","蔓越莓乾切碎拌入麵團均勻分布。","麵團揉成長條柱狀，用烘焙紙包裹冷凍1小時至硬化。","取出切成厚度均勻的0.5公分薄片，排於烤盤上。","180°C烤約20分鐘，放涼後即完成。"],
+    tip:"蔓越莓乾需切碎才能均勻分布；冷凍切片厚度一致是受熱均勻的關鍵。" }
 ];
 
 /* ---------------- 自訂食譜 / 編輯覆寫 儲存 ---------------- */
@@ -975,6 +1132,9 @@ function showDetail(recipe) {
   document.getElementById('detailCard').style.display = 'block';
   document.getElementById('detailName').textContent = recipe.name;
   document.getElementById('detailMeta').textContent = `份量：${recipe.yield} ・ 溫度：${recipe.temp} ・ 時間：${recipe.time}`;
+  const detailPhoto = document.getElementById('detailPhoto');
+  if (recipe.photo) { detailPhoto.src = recipe.photo; detailPhoto.style.display = 'block'; }
+  else { detailPhoto.style.display = 'none'; }
   const equipList = document.getElementById('equipList');
   equipList.innerHTML = recipe.equipment.map(e => `<li><span class="equip-checkbox"></span><span class="equip-name">${e}</span></li>`).join('');
   equipList.querySelectorAll('li').forEach(li => li.addEventListener('click', () => li.classList.toggle('checked')));
@@ -1046,7 +1206,16 @@ function createEditIngredientRow(name, amount, unit) {
   tr.querySelector('.btn-remove').addEventListener('click', () => tr.remove());
 }
 
-function openEditor(recipe) {
+let editPhotoData = null;
+function setEditPhoto(dataUrl) {
+  editPhotoData = dataUrl;
+  const img = document.getElementById('editPhotoPreview');
+  const removeBtn = document.getElementById('editPhotoRemoveBtn');
+  if (dataUrl) { img.src = dataUrl; img.style.display = 'block'; removeBtn.style.display = 'inline-block'; }
+  else { img.style.display = 'none'; removeBtn.style.display = 'none'; }
+}
+
+function openEditor(recipe, prefillSteps) {
   document.getElementById('detailCard').style.display = 'none';
   document.getElementById('editCard').style.display = 'block';
   document.getElementById('editIngredientRows').innerHTML = '';
@@ -1063,6 +1232,7 @@ function openEditor(recipe) {
     recipe.ingredients.forEach(ing => createEditIngredientRow(ing.name, ing.amount, ing.unit));
     document.getElementById('editSteps').value = recipe.steps.join('\n');
     document.getElementById('editTip').value = recipe.tip || '';
+    setEditPhoto(recipe.photo || null);
     if (isCustomId(recipe.id)) {
       document.getElementById('deleteRecipeBtn').style.display = 'inline-block';
     }
@@ -1075,11 +1245,20 @@ function openEditor(recipe) {
     document.getElementById('editTime').value = '';
     document.getElementById('editEquipment').value = '';
     createEditIngredientRow('', 0, 'g');
-    document.getElementById('editSteps').value = '';
+    document.getElementById('editSteps').value = prefillSteps || '';
     document.getElementById('editTip').value = '';
+    setEditPhoto(null);
   }
   document.getElementById('editCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
+
+document.getElementById('editPhotoBtn').addEventListener('click', () => document.getElementById('editPhotoInput').click());
+document.getElementById('editPhotoInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (file) compressImage(file, 800).then(setEditPhoto);
+  e.target.value = '';
+});
+document.getElementById('editPhotoRemoveBtn').addEventListener('click', () => setEditPhoto(null));
 
 document.getElementById('newRecipeBtn').addEventListener('click', () => openEditor(null));
 document.getElementById('editRecipeBtn').addEventListener('click', () => {
@@ -1116,7 +1295,8 @@ document.getElementById('saveRecipeBtn').addEventListener('click', () => {
     equipment,
     ingredients,
     steps,
-    tip: document.getElementById('editTip').value.trim()
+    tip: document.getElementById('editTip').value.trim(),
+    photo: editPhotoData || null
   };
 
   if (editingRecipeId && isCustomId(editingRecipeId)) {
@@ -1330,10 +1510,10 @@ function makeDrumCol(max, initial, padded) {
   return col;
 }
 
-function createTimer(label='', h=0, m=10, s=0) {
+function createTimer(label='', h=0, m=0, s=0) {
   const id = Date.now();
   const total = h*3600 + m*60 + s;
-  timers.push({ id, label: label||'計時器', total: total||600, remaining: total||600, running: false, interval: null, drumH:null, drumM:null, drumS:null });
+  timers.push({ id, label: label||'計時器', total: total, remaining: total, running: false, interval: null, alarmInterval: null, alarming: false, drumH:null, drumM:null, drumS:null });
   renderTimers();
 }
 
@@ -1362,7 +1542,7 @@ function renderTimers() {
       <div style="display:flex;justify-content:center;gap:24px;margin-bottom:4px;">
         <span class="drum-label">時</span><span class="drum-label">分</span><span class="drum-label">秒</span>
       </div>
-      <div class="timer-display ${dispClass}" id="tdisp-${t.id}">${dispH}:${dispM}:${dispS}</div>
+      <div class="timer-display ${dispClass}" id="tdisp-${t.id}" style="display:none;">${dispH}:${dispM}:${dispS}</div>
       <div class="timer-btns">
         <button class="btn" id="treset-${t.id}">重設</button>
         <button class="btn" id="tbtn-${t.id}" style="min-width:72px;">${t.running?'暫停':(t.remaining<t.total&&t.remaining>0?'繼續':'開始')}</button>
@@ -1388,9 +1568,18 @@ function renderTimers() {
   });
 }
 
+function stopAlarm(t) {
+  if (t.alarmInterval) { clearInterval(t.alarmInterval); t.alarmInterval=null; }
+  t.alarming=false;
+  const b=document.getElementById('tbtn-'+t.id);
+  if(b){ b.textContent='開始'; b.classList.remove('btn-alarm'); }
+}
+
 function toggleTimer(id) {
   const t = timers.find(x=>x.id===id);
-  if (!t || t.remaining===0) return;
+  if (!t) return;
+  if (t.alarming) { stopAlarm(t); return; }
+  if (t.remaining===0) return;
   if (t.running) {
     clearInterval(t.interval); t.running=false;
   } else {
@@ -1403,8 +1592,10 @@ function toggleTimer(id) {
       if(d){ d.textContent=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0'); d.className='timer-display '+(t.remaining===0?'done':'running'); }
       if(t.remaining===0){
         clearInterval(t.interval); t.running=false;
-        if(b) b.textContent='開始';
+        t.alarming=true;
         playBeep();
+        t.alarmInterval = setInterval(()=>playBeep(), 1500);
+        if(b){ b.textContent='關閉鈴聲'; b.classList.add('btn-alarm'); }
       }
     },1000);
   }
@@ -1416,33 +1607,44 @@ function resetTimer(id) {
   const t=timers.find(x=>x.id===id);
   if(!t) return;
   clearInterval(t.interval); t.running=false;
+  stopAlarm(t);
   const h=t.drumH?t.drumH.getValue():0;
   const m=t.drumM?t.drumM.getValue():0;
   const s=t.drumS?t.drumS.getValue():0;
-  t.total=(h*3600+m*60+s)||600; t.remaining=t.total;
+  t.total=(h*3600+m*60+s); t.remaining=t.total;
   const rh=Math.floor(t.remaining/3600), rm=Math.floor((t.remaining%3600)/60), rs=t.remaining%60;
   const d=document.getElementById('tdisp-'+id);
   const b=document.getElementById('tbtn-'+id);
   if(d){ d.textContent=String(rh).padStart(2,'0')+':'+String(rm).padStart(2,'0')+':'+String(rs).padStart(2,'0'); d.className='timer-display'; }
-  if(b) b.textContent='開始';
+  if(b){ b.textContent='開始'; b.classList.remove('btn-alarm'); }
 }
 
 function removeTimer(id) {
   const t=timers.find(x=>x.id===id);
-  if(t) clearInterval(t.interval);
+  if(t) { clearInterval(t.interval); if(t.alarmInterval) clearInterval(t.alarmInterval); }
   timers=timers.filter(x=>x.id!==id);
   renderTimers();
 }
 
-document.getElementById('addTimerBtn').addEventListener('click', ()=>createTimer('',0,10,0));
+document.getElementById('addTimerBtn').addEventListener('click', ()=>createTimer('',0,0,0));
 renderTimers();
 
 /* ════════════════════════════
    購物清單
 ════════════════════════════ */
 const SHOP_KEY='bakingShopList';
-function getShopList(){try{return JSON.parse(localStorage.getItem(SHOP_KEY)||'[]');}catch{return[];}}
-function saveShopList(l){try{localStorage.setItem(SHOP_KEY,JSON.stringify(l));}catch{}}
+let shopListCache=null;
+function getShopList(){
+  if(shopListCache) return shopListCache;
+  try{ shopListCache=JSON.parse(localStorage.getItem(SHOP_KEY)||'[]'); }
+  catch(e){ console.warn('讀取購物清單失敗（localStorage 無法使用）：',e); shopListCache=[]; }
+  return shopListCache;
+}
+function saveShopList(l){
+  shopListCache=l;
+  try{ localStorage.setItem(SHOP_KEY,JSON.stringify(l)); }
+  catch(e){ console.warn('儲存購物清單失敗（localStorage 無法使用，重新整理後會消失）：',e); }
+}
 function renderShopList(){
   const list=getShopList();
   const el=document.getElementById('shopList');
@@ -1509,10 +1711,19 @@ function renderNoteList(){
   notes.forEach(n=>{
     const div=document.createElement('div');
     div.className='note-item';
-    div.innerHTML=`<div class="note-head"><span class="note-item-title">${n.title||'無標題'}</span><span class="note-date">${n.date}</span></div><div class="note-stars">${'★'.repeat(n.rating||0)+'☆'.repeat(5-(n.rating||0))}</div><div class="note-preview">${n.content||'（無內容）'}</div>`;
+    const thumb = n.photo ? `<img class="note-thumb" src="${n.photo}" />` : '';
+    div.innerHTML=`<div class="note-body">${thumb}<div class="note-text"><div class="note-head"><span class="note-item-title">${n.title||'無標題'}</span><span class="note-date">${n.date}</span></div><div class="note-stars">${'★'.repeat(n.rating||0)+'☆'.repeat(5-(n.rating||0))}</div><div class="note-preview">${n.content||'（無內容）'}</div></div></div>`;
     div.addEventListener('click',()=>openNoteEditor(n));
     el.appendChild(div);
   });
+}
+let editNotePhotoData = null;
+function setNotePhoto(dataUrl) {
+  editNotePhotoData = dataUrl;
+  const img = document.getElementById('notePhotoPreview');
+  const removeBtn = document.getElementById('notePhotoRemoveBtn');
+  if (dataUrl) { img.src = dataUrl; img.style.display = 'block'; removeBtn.style.display = 'inline-block'; }
+  else { img.style.display = 'none'; removeBtn.style.display = 'none'; }
 }
 function openNoteEditor(note){
   editingNoteId=note?note.id:null;
@@ -1523,10 +1734,18 @@ function openNoteEditor(note){
   document.getElementById('noteContent').value=note?note.content:'';
   document.getElementById('noteRecipeLink').value=note&&note.recipeId?note.recipeId:'';
   document.getElementById('deleteNoteBtn').style.display=note?'inline-block':'none';
+  setNotePhoto(note&&note.photo?note.photo:null);
   updateNoteStars(noteRating);
   document.getElementById('noteEditCard').style.display='block';
   document.getElementById('noteEditCard').scrollIntoView({behavior:'smooth',block:'start'});
 }
+document.getElementById('notePhotoBtn').addEventListener('click', () => document.getElementById('notePhotoInput').click());
+document.getElementById('notePhotoInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (file) compressImage(file, 800).then(setNotePhoto);
+  e.target.value = '';
+});
+document.getElementById('notePhotoRemoveBtn').addEventListener('click', () => setNotePhoto(null));
 function updateNoteStars(v){
   noteRating=v;
   document.querySelectorAll('.star-btn').forEach(b=>{
@@ -1544,7 +1763,7 @@ document.getElementById('addNoteBtn').addEventListener('click',()=>openNoteEdito
 document.getElementById('cancelNoteBtn').addEventListener('click',()=>{document.getElementById('noteEditCard').style.display='none';});
 document.getElementById('saveNoteBtn').addEventListener('click',()=>{
   const notes=getNotes();
-  const data={id:editingNoteId||Date.now(),title:document.getElementById('noteTitle').value.trim()||'無標題',date:document.getElementById('noteDate').value,content:document.getElementById('noteContent').value.trim(),rating:noteRating,recipeId:document.getElementById('noteRecipeLink').value};
+  const data={id:editingNoteId||Date.now(),title:document.getElementById('noteTitle').value.trim()||'無標題',date:document.getElementById('noteDate').value,content:document.getElementById('noteContent').value.trim(),rating:noteRating,recipeId:document.getElementById('noteRecipeLink').value,photo:editNotePhotoData||null};
   if(editingNoteId){const i=notes.findIndex(n=>n.id===editingNoteId);if(i>=0)notes[i]=data;else notes.push(data);}
   else notes.push(data);
   saveNotes(notes);renderNoteList();
